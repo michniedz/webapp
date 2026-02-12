@@ -4,7 +4,7 @@ const Navbar = ({ onLogin }) => {
     return (
         <nav className="navbar">
             <div className="logo">
-                Tech<span>Edu</span>.js
+                Tech<span>Programista</span>
             </div>
             <ul className="nav-links">
                 <li><a href="#home">Start</a></li>

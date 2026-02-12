@@ -17,7 +17,7 @@ const LoginPage = ({ onLoginSuccess, onBack }) => {
                 <button type="button" className="back-link" onClick={onBack}>
                     ← Wróć do strony głównej
                 </button>
-                <h2>Zaloguj się do <span className="highlight">TechEdu</span></h2>
+                <h2>Zaloguj się do <span className="highlight">TechProgramista</span></h2>
                 <p>Wprowadź swoje dane, aby uzyskać dostęp do materiałów.</p>
 
                 <div className="input-group">

@@ -11,7 +11,7 @@ const LandingPage = ({ onLogin }) => {
                     Zostań Mistrzem <span className="highlight">Programowania</span>
                 </h1>
                 <p className="hero-subtitle">
-                    Ekskluzywne materiały dydaktyczne, zadania praktyczne i dokumentacja
+                    Materiały dydaktyczne, zadania praktyczne i dokumentacja
                     dla uczniów technikum. Wszystko w jednym miejscu.
                 </p>
                 <div className="hero-btns">
@@ -32,9 +32,9 @@ const LandingPage = ({ onLogin }) => {
                 </div>
 
                 <div className="card">
-                    <div className="icon">🛡️</div>
-                    <h3>Backend Core</h3>
-                    <p>Zrozum architekturę serwerową, bazy danych SQL i bezpieczne API w Node.js.</p>
+                    <div className="icon">📝</div>
+                    <h3>Egzamin INF.03</h3>
+                    <p>Przygotuj się do egzaminów zawodowych z bazą gotowych arkuszy i zadań.</p>
                 </div>
 
                 <div className="card">
