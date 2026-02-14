@@ -199,6 +199,11 @@ body {
   color: var(--text-dim);
   padding: 0.8rem 1rem;
   border-radius: 8px;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s ease;
 }
 
 .side-nav a.active {
@@ -401,3 +406,882 @@ body {
     flex-direction: column;
   }
 }
+
+.admin-form-section {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  max-width: 600px;
+  margin-top: 2rem;
+}
+
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.admin-form textarea {
+  min-height: 100px;
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  resize: vertical;
+}
+
+.status-msg {
+  margin-top: 1rem;
+  font-weight: 500;
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+.tab-menu {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.tab-menu button {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: #e2e8f0;
+  cursor: pointer;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.tab-menu button.active {
+  background: #2563eb;
+  color: white;
+}
+
+
+
+/* --- NOWOCZESNY PANEL ADMINA --- */
+
+.tab-menu {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1.5rem 0 2rem 0;
+  background: var(--bg-card);
+  padding: 0.5rem;
+  border-radius: 12px;
+  width: fit-content;
+  border: 1px solid #334155;
+}
+
+.tab-menu button {
+  padding: 0.7rem 1.5rem;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.tab-menu button.active {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+/* Sekcja formularza */
+.admin-form-section {
+  background: var(--bg-card);
+  padding: 2.5rem;
+  border-radius: 20px;
+  border: 1px solid #334155;
+  max-width: 800px;
+  margin-top: 1rem;
+}
+
+.admin-form-section h3 {
+  margin-bottom: 2rem;
+  font-size: 1.5rem;
+  border-left: 4px solid var(--primary);
+  padding-left: 1rem;
+}
+
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+
+
+.admin-form input:focus,
+.admin-form select:focus,
+.admin-form textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Radio Group dla Typu Zawartości */
+.radio-group {
+  display: flex;
+  gap: 1.5rem;
+  background: #0f172a;
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid #334155;
+}
+
+.radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  color: var(--text-main) !important;
+  margin-bottom: 0 !important;
+}
+
+.radio-group input[type="radio"] {
+  width: auto;
+  accent-color: var(--primary);
+}
+
+
+/* Banery statusu */
+.status-banner {
+  padding: 1rem 1.5rem;
+  border-radius: 10px;
+  margin-bottom: 2rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-banner.success {
+  background: rgba(34, 197, 94, 0.1);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.status-banner.error {
+  background: rgba(244, 63, 94, 0.1);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.2);
+}
+
+.clickable {
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.clickable:hover {
+  transform: translateY(-5px);
+  border-color: var(--primary);
+}
+
+.course-title-active {
+  margin: 1.5rem 0;
+  color: var(--primary);
+  font-size: 1.8rem;
+}
+
+.no-data {
+  color: var(--text-dim);
+  font-style: italic;
+  margin-top: 2rem;
+}
+
+/* MODAL STYLES */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: var(--bg-card);
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  border-radius: 20px;
+  padding: 2rem;
+  position: relative;
+  overflow-y: auto;
+  border: 1px solid #334155;
+}
+
+.close-modal {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  background: #f43f5e;
+  border: none;
+  color: white;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.html-render {
+  margin-top: 2rem;
+  color: var(--text-main);
+  line-height: 1.8;
+}
+
+.html-render h1, .html-render h2 { color: var(--primary); margin: 1rem 0; }
+.html-render p { margin-bottom: 1rem; }
+.html-render code { background: #0f172a; padding: 0.2rem 0.4rem; border-radius: 4px; color: #fbbf24; }
+
+
+
+.nav-section-title {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  font-weight: 700;
+  margin: 1.5rem 0 0.5rem 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.no-courses-info {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  padding-left: 1rem;
+  font-style: italic;
+}
+
+.my-courses-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.side-nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+
+.side-nav a:hover {
+  background: rgba(99, 102, 241, 0.05);
+  padding-left: 1.2rem; /* Efekt wysunięcia */
+}
+
+
+.sidebar-footer {
+  padding-top: 1rem;
+  border-top: 1px solid #30363d;
+  margin-top: auto;
+}
+.user-name-label {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--primary);
+}
+
+.stat-card p {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+}
+
+.admin-info-box {
+  background: var(--bg-card);
+  padding: 2rem;
+  border-radius: 16px;
+  border: 1px solid #334155;
+}
+
+
+
+.admin-table-container {
+  overflow-x: auto;
+  margin-top: 1.5rem;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #161b22;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.admin-table th, .admin-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #30363d;
+}
+
+.admin-table th {
+  background: #0f172a;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.admin-table tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.btn-edit, .btn-save { background: #0e7490; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px; }
+.btn-delete, .btn-cancel { background: #991b1b; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+
+.admin-table input {
+  padding: 5px;
+  background: #0f172a;
+  border: 1px solid var(--primary);
+  color: white;
+  border-radius: 4px;
+  width: 100%;
+}
+
+.section-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+}
+
+.search-input {
+  padding: 0.7rem 1.2rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: white;
+  width: 300px;
+}
+
+/* Styl dla pól rozwijanych (Select) */
+select {
+  appearance: none; /* Usuwa domyślną strzałkę systemową */
+  background-color: #0f172a !important; /* Ciemne tło pasujące do inputów */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236366f1'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1.2rem;
+  color: var(--text-main);
+  padding: 0.7rem 2.5rem 0.7rem 1rem;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+/* Efekt po najechaniu i kliknięciu */
+select:hover {
+  border-color: var(--primary);
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+/* Styl dla opcji wewnątrz listy (zależne od przeglądarki, ale pomaga) */
+select option {
+  background-color: #1e293b;
+  color: white;
+  padding: 10px;
+}
+
+/* Specyficzne poprawki dla selectów w tabeli admina */
+.admin-table select {
+  padding: 5px 2rem 5px 10px;
+  font-size: 0.85rem;
+  background-size: 0.9rem;
+  background-position: right 0.5rem center;
+  min-width: 120px;
+}
+
+
+/* Style dla tagów statusu */
+.tag {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.tag-pending {
+  background: rgba(245, 158, 11, 0.2); /* Pomarańczowy */
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.tag-active {
+  background: rgba(34, 197, 94, 0.2); /* Zielony */
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.tag-admin { background: rgba(99, 102, 241, 0.2); color: #818cf8; }
+.tag-student { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
+
+
+.toggle-link {
+  color: var(--primary);
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: underline;
+  margin-left: 5px;
+}
+
+.toggle-link:hover {
+  color: var(--primary-hover);
+}
+
+/* Poprawka dla quiz-grid wewnątrz logowania */
+.login-card .quiz-grid {
+  margin-bottom: 0;
+  gap: 1rem;
+}
+
+/* --- POPRAWKA FORMULARZY --- */
+
+.admin-form .input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* Odstęp między napisem a polem */
+  margin-bottom: 1.2rem;
+  text-align: left;
+}
+
+.admin-form label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 0 !important; /* Usuwamy wszelkie ujemne marginesy */
+  pointer-events: none;
+}
+
+.admin-form input,
+.admin-form select,
+.admin-form textarea {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  color: white;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.3s;
+  display: block; /* Upewniamy się, że input jest pod napisem */
+}
+
+
+/* Specyficzna poprawka dla LoginPage, jeśli napisy nadal znikają */
+.login-card .input-group {
+  position: relative;
+  margin-top: 0.5rem;
+}
+
+.login-card label {
+  color: var(--text-main);
+  opacity: 0.9;
+}
+
+
+.quiz-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+textarea {
+  width: 100%;
+  min-height: 80px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: white;
+  padding: 10px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.quiz-admin-container .admin-table td {
+  vertical-align: middle;
+}
+
+
+.quiz-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 2rem 0;
+}
+
+.quiz-option-btn {
+  text-align: left;
+  padding: 1rem 1.5rem;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quiz-option-btn:hover {
+  background: #1c2128;
+  border-color: var(--primary);
+}
+
+.quiz-option-btn.selected {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.quiz-navigation {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid #30363d;
+}
+
+.quiz-navigation button {
+  padding: 0.6rem 1.5rem;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+}
+
+.quiz-navigation button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.quiz-question-text {
+  font-size: 1.2rem;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+.timer-badge {
+  background: #1e293b;
+  padding: 8px 15px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-family: monospace;
+  font-size: 1.2rem;
+  border: 1px solid #334155;
+  color: #4ade80;
+}
+
+.timer-badge.urgent {
+  color: #f87171;
+  border-color: #ef4444;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.review-list {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+
+
+.correct-border { border-left-color: #22c55e; }
+.wrong-border { border-left-color: #ef4444; }
+
+.review-options {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.review-opt {
+  padding: 10px;
+  border-radius: 4px;
+  background: #2d333b;
+  font-size: 0.9rem;
+}
+
+.opt-correct {
+  background: rgba(34, 197, 94, 0.2) !important;
+  border: 1px solid #22c55e;
+  color: #4ade80;
+}
+
+.opt-wrong {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border: 1px solid #ef4444;
+  color: #f87171;
+}
+
+.stat-card.locked {
+  cursor: not-allowed;
+  border-color: #334155;
+  background: #0f172a;
+  opacity: 0.8;
+}
+
+.quiz-result-tag {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(34, 197, 94, 0.1);
+  border-radius: 6px;
+  color: #4ade80;
+  font-size: 0.9rem;
+}
+
+.status-completed {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: bold;
+  color: #22c55e;
+}
+
+.stat-card.locked:hover {
+  transform: none; /* Wyłącz animację dla zablokowanych */
+}
+
+.section-header-flex {
+  flex-wrap: wrap; /* Pozwala elementom przejść do nowej linii na mniejszych ekranach */
+  gap: 15px;
+}
+
+/* Wyrównanie inputa wyszukiwania w bazie pytań */
+.quiz-admin-container .search-input {
+  height: 42px; /* Standaryzacja wysokości z selectem */
+}
+.btn-small {
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  background: var(--primary);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+}
+.btn-small.btn-secondary { background: #475569; }
+.btn-small:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.row-highlight-warning {
+  background-color: rgba(234, 179, 8, 0.1) !important;
+  border-left: 4px solid #eab308;
+}
+
+/* Kontener pojedynczego pytania w podsumowaniu */
+.review-item {
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 2px solid transparent; /* Rezerwujemy miejsce na obramowanie */
+  transition: transform 0.2s;
+}
+
+/* Obramowanie dla poprawnej odpowiedzi */
+.correct-border {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.05); /* Bardzo delikatny zielony blask */
+}
+
+/* Obramowanie dla błędnej odpowiedzi */
+.wrong-border {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.05); /* Bardzo delikatny czerwony blask */
+}
+
+/* Obramowanie dla braku odpowiedzi */
+.unanswered-border {
+  border-color: #64748b;
+  opacity: 0.8;
+}
+
+.question-number {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.question-text {
+  font-size: 1.1rem;
+  margin-bottom: 15px;
+  line-height: 1.4;
+}
+
+/* Poprawka dla opcji, by były czytelniejsze na kolorowym tle */
+.review-opt {
+  padding: 12px;
+  border-radius: 8px;
+  background: #0f172a;
+  margin-bottom: 4px;
+  border: 1px solid #334155;
+}
+
+.student-stats-section {
+  margin-bottom: 2rem;
+}
+
+.progress-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  height: 200px;
+  padding: 20px 0;
+  border-bottom: 2px solid #334155;
+  margin-top: 1rem;
+}
+
+.chart-column-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 60px;
+}
+
+.chart-bar {
+  width: 100%;
+  border-radius: 6px 6px 0 0;
+  position: relative;
+  transition: height 1s ease-out;
+  display: flex;
+  justify-content: center;
+}
+
+.chart-bar.pass {
+  background: linear-gradient(to top, #15803d, #22c55e);
+}
+
+.chart-bar.fail {
+  background: linear-gradient(to top, #b91c1c, #ef4444);
+}
+
+.bar-value {
+  position: absolute;
+  top: -25px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.bar-label {
+  margin-top: 10px;
+  font-size: 0.7rem;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+/* --- STYLIZACJA WYKRESU W STUDENT PANEL --- */
+
+.student-stats-section {
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  border: 1px solid #334155;
+}
+
+.progress-chart {
+  display: flex;
+  align-items: flex-end; /* Słupki rosną od dołu */
+  gap: 25px;
+  height: 180px; /* Stała wysokość wykresu */
+  padding: 30px 10px 10px 10px;
+  background: #0f172a;
+  border-radius: 8px;
+  margin-top: 1rem;
+  border-bottom: 2px solid #334155;
+}
+
+.chart-column-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 50px;
+  height: 100%; /* Zajmuje całą wysokość progress-chart */
+  justify-content: flex-end;
+}
+
+.chart-bar {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  transition: height 0.8s ease-out; /* Animacja "rosnięcia" słupka */
+  min-height: 2px; /* Aby słupek 0% był chociaż lekko widoczny */
+}
+
+/* Kolory słupków */
+.chart-bar.pass {
+  background: linear-gradient(to top, #15803d, #22c55e);
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+}
+
+.chart-bar.fail {
+  background: linear-gradient(to top, #991b1b, #ef4444);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+}
+
+/* Wartość procentowa nad słupkiem */
+.bar-value {
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #f8fafc;
+}
+
+/* Podpis pod słupkiem */
+.bar-label {
+  margin-top: 10px;
+  font-size: 0.7rem;
+  color: #94a3b8;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Efekt najechania */
+.chart-bar:hover {
+  filter: brightness(1.2);
+  cursor: help;
+}
+/*.tag-admin { background: rgba(239, 68, 68, 0.2); color: #f87171; padding: 2px 8px; border-radius: 4px; }*/
+/*.tag-student { background: rgba(34, 197, 94, 0.2); color: #4ade80; padding: 2px 8px; border-radius: 4px; }*/

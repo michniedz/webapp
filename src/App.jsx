@@ -1,29 +1,41 @@
 import React, { useState } from 'react';
-import LandingPage from './views/LandingPage';
+import LandingPage from './views/LandingPage'; // Import Twojej starej strony
+import LoginPage from './views/LoginPage';
 import StudentPanel from './views/StudentPanel';
+import AdminPanel from './views/AdminPanel';
 import './App.css';
-import LoginPage from "./views/LoginPage.jsx";
 
 function App() {
-    const [view, setView] = useState('landing');
-    return (
-        <div className="app-container">
-            {view === 'landing' && (
-                <LandingPage onLogin={() => setView('login')} />
-            )}
+    const [user, setUser] = useState(null);
+    const [isLoggingIn, setIsLoggingIn] = useState(false); // Czy użytkownik kliknął "Zaloguj się"?
 
-            {view === 'login' && (
-                <LoginPage
-                    onLoginSuccess={() => setView('dashboard')}
-                    onBack={() => setView('landing')}
-                />
-            )}
+    const handleLoginSuccess = (userData) => {
+        setUser(userData);
+        setIsLoggingIn(false); // Ukrywamy widok logowania po sukcesie
+    };
 
-            {view === 'dashboard' && (
-                <StudentPanel onLogout={() => setView('landing')} />
-            )}
-        </div>
-    );
+    const handleLogout = () => {
+        setUser(null);
+        setIsLoggingIn(false);
+    };
+
+    // 1. Jeśli użytkownik jest zalogowany -> Pokaż odpowiedni panel
+    if (user) {
+        return user.role === 'admin'
+            ? <AdminPanel user={user} onLogout={handleLogout} />
+            : <StudentPanel user={user} onLogout={handleLogout} />;
+    }
+
+    // 2. Jeśli użytkownik kliknął przycisk logowania -> Pokaż LoginPage
+    if (isLoggingIn) {
+        return <LoginPage
+            onLoginSuccess={handleLoginSuccess}
+            onBack={() => setIsLoggingIn(false)}
+        />;
+    }
+
+    // 3. Domyślnie pokazywana strona (Twoje informacje podstawowe)
+    return <LandingPage onLogin={() => setIsLoggingIn(true)} />;
 }
 
 export default App;
