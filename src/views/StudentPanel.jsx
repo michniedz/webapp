@@ -25,11 +25,20 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
     const [profileData, setProfileData] = useState({
         first_name: user.first_name,
         last_name: user.last_name,
-        avatar: user.avatar || '', // Dodaj to
+        avatar: user.avatar || '',
         password: ''
     });
 
     const [loginHistory, setLoginHistory] = useState([]);
+
+    const handleRemoveAvatar = () => {
+        if (confirm("Czy na pewno chcesz usunąć swoje zdjęcie profilowe?")) {
+            setProfileData({ ...profileData, avatar: '' }); // Czyścimy podgląd
+            if (fileInputRef.current) {
+                fileInputRef.current.value = ""; // Czyścimy input pliku, aby można było wgrać to samo zdjęcie ponownie
+            }
+        }
+    };
 
     const handleAvatarChange = (e) => {
         const file = e.target.files[0];
@@ -253,27 +262,29 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
                                     )}
                                 </div>
 
-                                {/* Ten przycisk wywołuje kliknięcie w ukryty input przez Ref */}
-                                <button
-                                    type="button" // Ważne: type="button", żeby nie wysłał całego formularza!
-                                    className="btn-access"
-                                    style={{ padding: '8px 15px', fontSize: '0.8rem', cursor: 'pointer' }}
-                                    onClick={() => fileInputRef.current.click()}
-                                >
-                                    Zmień zdjęcie
-                                </button>
-                                {/* Informacja dla użytkownika */}
-                                <p style={{
-                                    fontSize: '0.75rem',
-                                    color: 'var(--text-dim)',
-                                    marginTop: '10px',
-                                    lineHeight: '1.4'
-                                }}>
-                                    Dozwolone pliki: <strong>JPG, PNG, GIF</strong><br />
-                                    Maksymalny rozmiar: <strong>100 KB</strong>
-                                </p>
+                                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                                    <button
+                                        type="button"
+                                        className="btn-access"
+                                        style={{ padding: '8px 15px', fontSize: '0.8rem', cursor: 'pointer' }}
+                                        onClick={() => fileInputRef.current.click()}
+                                    >
+                                        {profileData.avatar ? 'Zmień' : 'Dodaj zdjęcie'}
+                                    </button>
 
-                                {/* Ukryty input z przypisaną referencją */}
+                                    {/* Przycisk usuwania - widoczny tylko gdy jest awatar */}
+                                    {profileData.avatar && (
+                                        <button
+                                            type="button"
+                                            className="btn-delete"
+                                            style={{ padding: '8px 15px', fontSize: '0.8rem', cursor: 'pointer' }}
+                                            onClick={handleRemoveAvatar}
+                                        >
+                                            Usuń
+                                        </button>
+                                    )}
+                                </div>
+
                                 <input
                                     type="file"
                                     ref={fileInputRef}
@@ -281,6 +292,10 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
                                     onChange={handleAvatarChange}
                                     style={{ display: 'none' }}
                                 />
+
+                                <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '10px' }}>
+                                    JPG, PNG lub GIF (max 100 KB)
+                                </p>
                             </div>
 
                             <div style={{ marginBottom: '1rem' }}>

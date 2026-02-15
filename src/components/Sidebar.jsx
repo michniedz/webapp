@@ -76,9 +76,22 @@ const Sidebar = ({ onLogout, user, myCourses = [], onSelectCourse, activeCourseI
                     )}
                     <div className="user-info-text">
                         <span className="user-name-small">{user?.first_name} {user?.last_name}</span>
-                        <span style={{fontSize: '0.7rem', color: '#94a3b8'}}>Student</span>
+                        {/* ZMIANA TUTAJ: Dynamiczna etykieta roli */}
+                        <span style={{fontSize: '0.7rem', color: '#94a3b8'}}>
+                {isAdmin ? 'Administrator' : 'Student'}
+            </span>
                     </div>
                 </div>
+
+                {/* Opcjonalnie: Jeśli chcesz, aby admin też mógł wejść w edycję swojego profilu */}
+                {/*{isAdmin && (*/}
+                {/*    <a href="#"*/}
+                {/*       style={{fontSize: '0.75rem', color: 'var(--primary)', marginBottom: '10px', display: 'block', textDecoration: 'none'}}*/}
+                {/*       onClick={(e) => { e.preventDefault(); onMenuClick('profile'); }}>*/}
+                {/*        ⚙️ Ustawienia konta*/}
+                {/*    </a>*/}
+                {/*)}*/}
+
                 <button className="logout-btn" onClick={onLogout}>Wyloguj się</button>
             </div>
         </aside>
