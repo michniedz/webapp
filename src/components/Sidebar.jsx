@@ -29,6 +29,9 @@ const Sidebar = ({ onLogout, user, myCourses = [], onSelectCourse, activeCourseI
                         <a href="#" onClick={(e) => { e.preventDefault(); onMenuClick('results'); }}>
                             📝 Wyniki
                         </a>
+                        <a href="#" onClick={(e) => { e.preventDefault(); onMenuClick('materials'); }}>
+                            📂 Materiały
+                        </a>
                     </>
                 ) : (
                     /* --- MENU DLA STUDENTA --- */

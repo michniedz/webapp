@@ -24,7 +24,8 @@ const AdminPanel = ({ onLogout, user }) => {
     const [newQuiz, setNewQuiz] = useState({
         category: 'INF.03', question: '',
         ans_a: '', ans_b: '', ans_c: '', ans_d: '',
-        correct_ans: 'A'
+        correct_ans: 'A',
+        image_url: ''
     });
     const [editingQuestion, setEditingQuestion] = useState(null);
     const [selectedQuizQuestions, setSelectedQuizQuestions] = useState([]);
@@ -32,6 +33,25 @@ const AdminPanel = ({ onLogout, user }) => {
 
     // -- STAN WYNIKI
     const [allResults, setAllResults] = useState([]);
+
+    const [allMaterials, setAllMaterials] = useState([]);
+    const [materialFilter, setMaterialFilter] = useState('ALL');
+
+    const [previewData, setPreviewData] = useState(null);
+
+    const fetchAllMaterials = async () => {
+        const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/materials');
+        const data = await res.json();
+        if (data.success) setAllMaterials(data.data);
+    };
+
+    const getEmbedUrl = (url) => {
+        if (!url) return url;
+        if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
+            return url.replace(/\/view|\/edit|\/usp=sharing|\/edit\?usp=sharing/g, '/preview');
+        }
+        return url;
+    };
 
     // --- FUNKCJE POBIERANIA DANYCH (API) ---
     const fetchStats = async () => {
@@ -99,7 +119,33 @@ const AdminPanel = ({ onLogout, user }) => {
             fetchQuestions();
             fetchQuizzes();
         }
+        if (activeTab === 'materials') {
+            fetchAllMaterials();
+            fetchCourses(); // potrzebne do listy rozwijanej kursów
+        }
     }, [activeTab]);
+
+    const handleShowPreview = (e) => {
+        const form = e.target.closest('form');
+        const formData = new FormData(form);
+
+        setPreviewData({
+            title: formData.get('title'),
+            content_type: formData.get('content_type'),
+            content_value: formData.get('content_value')
+        });
+    };
+
+    const handleDeleteMaterial = async (id) => {
+        if (!confirm("Czy na pewno chcesz usunąć ten materiał?")) return;
+        const res = await fetch(`https://backend-webapp.michniedz.workers.dev/api/admin/materials?id=${id}`, {
+            method: 'DELETE'
+        });
+        if ((await res.json()).success) {
+            setMsg({ text: 'Materiał usunięty.', type: 'success' });
+            fetchAllMaterials();
+        }
+    };
 
     // --- HANDLERY AKCJI ---
     const handleUpdateCourse = async (course) => {
@@ -274,6 +320,41 @@ const AdminPanel = ({ onLogout, user }) => {
         });
         if ((await res.json()).success) {
             setMsg({ text: 'Test przypisany do kursu!', type: 'success' });
+        }
+    };
+
+    const handleAddMaterial = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+
+        const materialData = {
+            course_id: parseInt(formData.get('course_id')), // Pobieramy z selecta w formularzu
+            title: formData.get('title'),
+            content_type: formData.get('content_type'),
+            content_value: formData.get('content_value')
+        };
+
+        if (!materialData.course_id) {
+            alert("Proszę wybrać kurs!");
+            return;
+        }
+
+        try {
+            const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/admin/materials', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(materialData)
+            });
+            const data = await res.json();
+            if (data.success) {
+                setMsg({ text: 'Materiał został pomyślnie dodany!', type: 'success' });
+                e.target.reset(); // Czyści pola formularza
+                fetchAllMaterials(); // Odświeża tabelę materiałów
+            } else {
+                setMsg({ text: 'Błąd: ' + data.error, type: 'error' });
+            }
+        } catch (err) {
+            setMsg({ text: 'Błąd połączenia z serwerem.', type: 'error' });
         }
     };
 
@@ -517,15 +598,31 @@ const AdminPanel = ({ onLogout, user }) => {
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify(newQuiz)
                                 });
-                                if ((await res.json()).success) fetchQuestions();
+                                if ((await res.json()).success) {
+                                    fetchQuestions();
+                                    // Czyścimy formularz
+                                    setNewQuiz({...newQuiz, question: '', ans_a: '', ans_b: '', ans_c: '', ans_d: '', image_url: ''});
+                                }
                             }}>
                                 <textarea placeholder="Treść pytania" value={newQuiz.question} onChange={e => setNewQuiz({...newQuiz, question: e.target.value})} />
+
+                                {/* NOWE POLE NA LINK DO ZDJĘCIA */}
+                                <input
+                                    type="text"
+                                    placeholder="Link do zdjęcia (np. z R2) - zostaw puste jeśli brak"
+                                    value={newQuiz.image_url}
+                                    onChange={e => setNewQuiz({...newQuiz, image_url: e.target.value})}
+                                    style={{ marginBottom: '1rem' }}
+                                />
+
                                 <div className="quiz-grid">
                                     <input placeholder="Odp A" value={newQuiz.ans_a} onChange={e => setNewQuiz({...newQuiz, ans_a: e.target.value})} />
                                     <input placeholder="Odp B" value={newQuiz.ans_b} onChange={e => setNewQuiz({...newQuiz, ans_b: e.target.value})} />
                                     <input placeholder="Odp C" value={newQuiz.ans_c} onChange={e => setNewQuiz({...newQuiz, ans_c: e.target.value})} />
                                     <input placeholder="Odp D" value={newQuiz.ans_d} onChange={e => setNewQuiz({...newQuiz, ans_d: e.target.value})} />
-                                    <select value={newQuiz.correct_ans} onChange={e => setNewQuiz({...newQuiz, correct_ans: e.target.value})}><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select>
+                                    <select value={newQuiz.correct_ans} onChange={e => setNewQuiz({...newQuiz, correct_ans: e.target.value})}>
+                                        <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+                                    </select>
                                 </div>
                                 <button type="submit" className="login-submit-btn">Zapisz w bazie</button>
                             </form>
@@ -555,22 +652,82 @@ const AdminPanel = ({ onLogout, user }) => {
                                         <tr key={q.id}>
                                             {editingQuestion?.id === q.id ? (
                                                 <td colSpan="4">
-                                                    <div style={{background: '#1c2128', padding: '15px'}}>
-                                                        <textarea style={{width:'100%'}} value={editingQuestion.question} onChange={e => setEditingQuestion({...editingQuestion, question: e.target.value})} />
-                                                        <div className="quiz-grid">
-                                                            <input value={editingQuestion.ans_a} onChange={e => setEditingQuestion({...editingQuestion, ans_a: e.target.value})} />
-                                                            <input value={editingQuestion.ans_b} onChange={e => setEditingQuestion({...editingQuestion, ans_b: e.target.value})} />
-                                                            <input value={editingQuestion.ans_c} onChange={e => setEditingQuestion({...editingQuestion, ans_c: e.target.value})} />
-                                                            <input value={editingQuestion.ans_d} onChange={e => setEditingQuestion({...editingQuestion, ans_d: e.target.value})} />
-                                                            <select value={editingQuestion.correct_ans} onChange={e => setEditingQuestion({...editingQuestion, correct_ans: e.target.value})}><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select>
+                                                    <div className="edit-question-box">
+                                                        <div className="form-field-group">
+                                                            <label>Treść pytania:</label>
+                                                            <textarea
+                                                                value={editingQuestion.question}
+                                                                onChange={e => setEditingQuestion({...editingQuestion, question: e.target.value})}
+                                                            />
                                                         </div>
-                                                        <button className="btn-save" onClick={() => handleUpdateQuestion(editingQuestion)}>Zapisz</button>
-                                                        <button className="btn-cancel" onClick={() => setEditingQuestion(null)}>X</button>
+
+                                                        <div className="form-field-group">
+                                                            <label>Link do grafiki (R2 / URL):</label>
+                                                            <input
+                                                                type="text"
+                                                                className="edit-image-input"
+                                                                placeholder="Wklej URL zdjęcia..."
+                                                                value={editingQuestion.image_url || ''}
+                                                                onChange={e => setEditingQuestion({...editingQuestion, image_url: e.target.value})}
+                                                            />
+                                                        </div>
+
+                                                        <div className="quiz-grid">
+                                                            <div className="form-field-group">
+                                                                <label>Odp A</label>
+                                                                <input value={editingQuestion.ans_a} onChange={e => setEditingQuestion({...editingQuestion, ans_a: e.target.value})} />
+                                                            </div>
+                                                            <div className="form-field-group">
+                                                                <label>Odp B</label>
+                                                                <input value={editingQuestion.ans_b} onChange={e => setEditingQuestion({...editingQuestion, ans_b: e.target.value})} />
+                                                            </div>
+                                                            <div className="form-field-group">
+                                                                <label>Odp C</label>
+                                                                <input value={editingQuestion.ans_c} onChange={e => setEditingQuestion({...editingQuestion, ans_c: e.target.value})} />
+                                                            </div>
+                                                            <div className="form-field-group">
+                                                                <label>Odp D</label>
+                                                                <input value={editingQuestion.ans_d} onChange={e => setEditingQuestion({...editingQuestion, ans_d: e.target.value})} />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="quiz-grid" style={{gridTemplateColumns: '1fr 1fr'}}>
+                                                            <div className="form-field-group">
+                                                                <label>Kategoria / Kurs</label>
+                                                                <select value={editingQuestion.category} onChange={e => setEditingQuestion({...editingQuestion, category: e.target.value})}>
+                                                                    <option value="INF.03">INF.03</option>
+                                                                    <option value="INF.04">INF.04</option>
+                                                                    {courses.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                                                </select>
+                                                            </div>
+                                                            <div className="form-field-group">
+                                                                <label>Poprawna</label>
+                                                                <select value={editingQuestion.correct_ans} onChange={e => setEditingQuestion({...editingQuestion, correct_ans: e.target.value})}>
+                                                                    <option value="A">A</option><option value="B">B</option>
+                                                                    <option value="C">C</option><option value="D">D</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+
+                                                        <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px'}}>
+                                                            <button className="btn-cancel" onClick={() => setEditingQuestion(null)}>Anuluj</button>
+                                                            <button className="btn-save" onClick={() => handleUpdateQuestion(editingQuestion)}>Zapisz zmiany</button>
+                                                        </div>
                                                     </div>
                                                 </td>
                                             ) : (
                                                 <>
-                                                    <td>{q.category}</td><td style={{fontSize:'0.8rem'}}>{q.question}</td><td>{q.correct_ans}</td>
+                                                    {/*<td>{q.category}</td><td style={{fontSize:'0.8rem'}}>{q.question}</td><td>{q.correct_ans}</td>*/}
+                                                    <td>{q.category}</td>
+                                                    <td style={{ fontSize: '0.8rem' }}>
+                                                        {q.question}
+                                                        {q.image_url && (
+                                                            <div style={{ color: 'var(--primary)', fontSize: '0.7rem', marginTop: '5px', fontWeight: 'bold' }}>
+                                                                🖼️ Zawiera grafikę
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td>{q.correct_ans}</td>
                                                     <td>
                                                         <button className="btn-edit" onClick={() => setEditingQuestion({...q})}>Edytuj</button>
                                                         <button className="btn-save" disabled={!selectedQuizId} onClick={() => handleAddQuestionToQuiz(q.id)}>➕</button>
@@ -624,6 +781,143 @@ const AdminPanel = ({ onLogout, user }) => {
                         </div>
 
                     </section>
+                )}
+
+                {activeTab === 'materials' && (
+                    <div className="materials-admin-container">
+                        <header className="panel-header"><h2>Zarządzanie Materiałami 📂</h2></header>
+
+                        {/* SEKCOJA DODAWANIA */}
+                        <section className="admin-form-section" style={{ marginBottom: '2rem' }}>
+                            <h3>➕ Dodaj nowy materiał</h3>
+                            <form className="admin-form" onSubmit={handleAddMaterial}>
+                                <div className="quiz-grid">
+                                    <div style={{ flex: 1 }}>
+                                        <label>Tytuł materiału</label>
+                                        <input type="text" name="title" placeholder="np. Wykład 1: Wstęp" required />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <label>Przypisz do kursu</label>
+                                        <select name="course_id" required className="search-input">
+                                            <option value="">-- Wybierz kurs --</option>
+                                            {courses.map(c => (
+                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="quiz-grid" style={{ marginTop: '1rem' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <label>Typ treści</label>
+                                        <select name="content_type" className="search-input">
+                                            <option value="link">🔗 Link (Dysk Google / URL)</option>
+                                            <option value="html">📄 Notatka (Tekst/HTML)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div style={{ marginTop: '1rem' }}>
+                                    <label>Treść lub Link</label>
+                                    <textarea
+                                        name="content_value"
+                                        placeholder="Wklej link do Google Drive lub wpisz treść notatki..."
+                                        required
+                                        style={{ minHeight: '120px' }}
+                                    />
+                                </div>
+
+                                <div style={{ marginTop: '1rem', display: 'flex', gap: '10px' }}>
+                                    <button type="submit" className="login-submit-btn">
+                                        Opublikuj materiał
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        className="btn-edit"
+                                        style={{ marginTop: '1rem', background: '#475569' }}
+                                        onClick={handleShowPreview}
+                                    >
+                                        👁️ Podgląd na żywo
+                                    </button>
+                                </div>
+                            </form>
+                        </section>
+
+                        {/* LISTA MATERIAŁÓW */}
+                        <section className="admin-form-section">
+                            <div className="section-header-flex">
+                                <h3>Lista opublikowanych materiałów</h3>
+                                <select
+                                    className="search-input"
+                                    value={materialFilter}
+                                    onChange={e => setMaterialFilter(e.target.value)}
+                                >
+                                    <option value="ALL">Wszystkie kursy</option>
+                                    {courses.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="admin-table-container">
+                                <table className="admin-table">
+                                    <thead>
+                                    <tr>
+                                        <th>Kurs</th>
+                                        <th>Tytuł</th>
+                                        <th>Typ</th>
+                                        <th>Akcje</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {allMaterials
+                                        .filter(m => materialFilter === 'ALL' || m.course_id === parseInt(materialFilter))
+                                        .map(m => (
+                                            <tr key={m.id}>
+                                                <td><span className="tag tag-active">{m.course_name}</span></td>
+                                                <td>{m.title}</td>
+                                                <td>{m.content_type === 'link' ? '🔗 Link' : '📄 HTML'}</td>
+                                                <td>
+                                                    <button className="btn-delete" onClick={() => handleDeleteMaterial(m.id)}>Usuń</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </div>
+                )}
+
+                {previewData && (
+                    <div className="modal-overlay" onClick={() => setPreviewData(null)}>
+                        <div className="modal-content" style={{ width: '80%', height: '80vh' }} onClick={e => e.stopPropagation()}>
+                            <header className="section-header-flex">
+                                <h3>Podgląd: {previewData.title || 'Bez tytułu'}</h3>
+                                <button className="close-modal" onClick={() => setPreviewData(null)}>×</button>
+                            </header>
+                            <div style={{ flex: 1, height: '90%', marginTop: '10px' }}>
+                                {previewData.content_type === 'link' ? (
+                                    <iframe
+                                        src={getEmbedUrl(previewData.content_value)}
+                                        width="100%"
+                                        height="100%"
+                                        style={{ border: '2px dashed #334155', borderRadius: '8px' }}
+                                    ></iframe>
+                                ) : (
+                                    <div
+                                        className="html-render"
+                                        style={{ background: 'white', color: 'black', padding: '20px', borderRadius: '8px' }}
+                                        dangerouslySetInnerHTML={{ __html: previewData.content_value }}
+                                    />
+                                )}
+                            </div>
+                            <p style={{ color: '#94a3b8', fontSize: '0.8rem', textAlign: 'center' }}>
+                                Jeśli widzisz błąd logowania Google, upewnij się, że plik ma uprawnienia: "Każda osoba mająca link".
+                            </p>
+                        </div>
+                    </div>
                 )}
             </main>
         </div>

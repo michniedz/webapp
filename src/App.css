@@ -919,12 +919,12 @@ select option {
 }
 
 
-.quiz-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
+/*.quiz-grid {*/
+/*  display: grid;*/
+/*  grid-template-columns: 1fr 1fr;*/
+/*  gap: 1rem;*/
+/*  margin-bottom: 1.5rem;*/
+/*}*/
 
 textarea {
   width: 100%;
@@ -1340,6 +1340,76 @@ textarea {
   font-size: 0.9rem;
   color: white;
 }
+
+.quiz-image-wrapper img {
+  cursor: zoom-in;
+  transition: transform 0.2s;
+}
+
+/* Opcjonalnie: powiększenie zdjęcia po kliknięciu (jeśli chcesz być pro) */
+.quiz-image-wrapper img:hover {
+  transform: scale(1.02);
+}
+
+.review-item img {
+  cursor: pointer;
+}
+
+/* Styl dla kontenera edycji pytania */
+.edit-question-box {
+  background: #1c2128;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--primary);
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Specyficzny styl dla inputa z linkiem do zdjęcia w edycji */
+.edit-image-input {
+  background: #0f172a !important;
+  border: 1px dashed var(--primary) !important;
+  padding: 12px !important;
+  color: #4ade80 !important; /* Zielony kolor dla linków, żeby się wyróżniały */
+  font-family: monospace;
+  font-size: 0.85rem !important;
+}
+
+.edit-image-input::placeholder {
+  color: #475569;
+}
+
+/* Poprawka dla siatki wewnątrz formularzy */
+.quiz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Elastyczne kolumny */
+  gap: 1.5rem; /* Większy odstęp między polami */
+  margin-bottom: 1rem;
+}
+
+/* Styl dla grupy pola z etykietą */
+.form-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-field-group label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+/* Specyficzna poprawka dla edycji w tabeli */
+.edit-question-box .quiz-grid {
+  gap: 1rem;
+  padding: 10px 0;
+}
+
 
 @media (max-width: 768px) {
   /* Kluczowe: wyłączamy przesuwanie się całego kontenera */

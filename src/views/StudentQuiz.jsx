@@ -301,6 +301,21 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
                                 </p>
                                 <p className="question-text"><strong>{q.question}</strong></p>
 
+                                {q.image_url && (
+                                    <div style={{ marginBottom: '1rem', textAlign: 'left' }}>
+                                        <img
+                                            src={q.image_url}
+                                            alt="Podgląd"
+                                            style={{
+                                                maxWidth: '200px', // Mniejsze w podglądzie wyników
+                                                maxHeight: '150px',
+                                                borderRadius: '6px',
+                                                border: '1px solid #334155'
+                                            }}
+                                        />
+                                    </div>
+                                )}
+
                                 <div className="review-options">
                                     {['A', 'B', 'C', 'D'].map(opt => {
                                         const isThisCorrect = correctAns === opt;
@@ -336,6 +351,28 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
             </div>
             <div className="question-box">
                 <h4 className="quiz-question-text">{q?.question}</h4>
+                {q?.image_url && (
+                    <div className="quiz-image-wrapper" style={{
+                        textAlign: 'center',
+                        marginBottom: '1.5rem',
+                        padding: '10px',
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        borderRadius: '12px',
+                        border: '1px solid #334155'
+                    }}>
+                        <img
+                            src={q.image_url}
+                            alt="Ilustracja do pytania"
+                            style={{
+                                maxWidth: '100%',
+                                maxHeight: '350px',
+                                borderRadius: '8px',
+                                display: 'block',
+                                margin: '0 auto'
+                            }}
+                        />
+                    </div>
+                )}
                 <div className="quiz-options-list">
                     {['A', 'B', 'C', 'D'].map(key => (
                         <button key={key} className={`quiz-option-btn ${answers[currentStep] === key ? 'selected' : ''}`}

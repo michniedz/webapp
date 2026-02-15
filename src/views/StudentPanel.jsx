@@ -31,6 +31,14 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
 
     const [loginHistory, setLoginHistory] = useState([]);
 
+    const formatGoogleDriveLink = (url) => {
+        if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
+            // Zamienia /view lub /edit na /preview, co pozwala na osadzenie w iframe
+            return url.replace(/\/view.*|\/edit.*/, '/preview');
+        }
+        return url;
+    };
+
     const handleRemoveAvatar = () => {
         if (confirm("Czy na pewno chcesz usunąć swoje zdjęcie profilowe?")) {
             setProfileData({ ...profileData, avatar: '' }); // Czyścimy podgląd
