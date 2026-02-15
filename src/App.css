@@ -229,8 +229,10 @@ body {
 
 .main-content {
   margin-left: var(--sidebar-w);
-  padding: 3rem;
-  width: 100%;
+  padding: 2rem;
+  width: calc(100% - var(--sidebar-w)); /* Precyzyjne obliczenie szerokości */
+  flex: 1;
+  max-width: 100% !important;
 }
 
 .stats-grid {
@@ -242,14 +244,18 @@ body {
 
 .stat-card {
   background: var(--bg-card);
-  padding: 1.5rem;
+  /*padding: 1.5rem;*/
   border-radius: 12px;
   border: 1px solid #334155;
+
+  text-align: center !important;
+  padding: 1rem !important;
 }
 
 .stat-card span {
   display: block;
-  font-size: 2rem;
+  /*font-size: 2rem;*/
+  font-size: 1.5rem !important; /* Mniejsza czcionka dla liczb na mobile */
   font-weight: 800;
   color: var(--primary);
 }
@@ -390,31 +396,18 @@ body {
     display: none; /* Ukrywamy menu na mobile dla uproszczenia */
   }
 
-  .sidebar {
-    width: 100%;
-    height: auto;
-    position: relative;
-    padding: 1rem;
-  }
-
-  .main-content {
-    margin-left: 0;
-    padding: 1.5rem;
-  }
+  /*.sidebar {*/
+  /*  width: 100%;*/
+  /*  height: auto;*/
+  /*  position: relative;*/
+  /*  padding: 1rem;*/
+  /*}*/
 
   .hero-btns {
     flex-direction: column;
   }
 }
 
-.admin-form-section {
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-  max-width: 600px;
-  margin-top: 2rem;
-}
 
 .admin-form {
   display: flex;
@@ -489,12 +482,21 @@ body {
 }
 
 /* Sekcja formularza */
+/*.admin-form-section {*/
+/*  background: var(--bg-card);*/
+/*  padding: 2.5rem;*/
+/*  border-radius: 20px;*/
+/*  border: 1px solid #334155;*/
+/*  max-width: 800px;*/
+/*  margin-top: 1rem;*/
+/*}*/
 .admin-form-section {
   background: var(--bg-card);
-  padding: 2.5rem;
+  padding: 2rem;
   border-radius: 20px;
   border: 1px solid #334155;
-  max-width: 800px;
+  width: 100%; /* Rozciąga do rodzica */
+  max-width: 100% !important; /* Usuwa limit 600px/800px */
   margin-top: 1rem;
 }
 
@@ -715,7 +717,16 @@ body {
 
 
 .admin-table-container {
-  overflow-x: auto;
+  /*overflow-x: auto;*/
+  /*margin-top: 1.5rem;*/
+  -webkit-overflow-scrolling: touch; /* Płynne przewijanie na iPhone/Android */
+  border: 1px solid #334155 !important;
+  margin-bottom: 2rem !important;
+
+  width: 100%;
+  overflow-x: auto; /* Pozwala na scroll tylko gdy treść faktycznie się nie mieści */
+  background: #161b22;
+  border-radius: 12px;
   margin-top: 1.5rem;
 }
 
@@ -728,9 +739,13 @@ body {
 }
 
 .admin-table th, .admin-table td {
-  padding: 1rem;
+  /*padding: 1rem;*/
   text-align: left;
   border-bottom: 1px solid #30363d;
+
+  white-space: nowrap !important; /* Tekst w tabeli pozostaje w jednej linii */
+  padding: 0.8rem 0.5rem !important;
+  font-size: 0.85rem !important;
 }
 
 .admin-table th {
@@ -756,22 +771,17 @@ body {
   width: 100%;
 }
 
-.section-header-flex {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  gap: 1rem;
-}
-
 .search-input {
   padding: 0.7rem 1.2rem;
   background: #0f172a;
   border: 1px solid #334155;
   border-radius: 8px;
   color: white;
-  width: 300px;
+  width: 100% !important; /* Wyszukiwarka na całą szerokość ekranu */
+  max-width: 400px;
+  margin: 0 !important;
 }
+
 
 /* Styl dla pól rozwijanych (Select) */
 select {
@@ -1078,8 +1088,20 @@ textarea {
 }
 
 .section-header-flex {
-  flex-wrap: wrap; /* Pozwala elementom przejść do nowej linii na mniejszych ekranach */
-  gap: 15px;
+  /*display: flex;*/
+  /*justify-content: space-between;*/
+  /*align-items: center;*/
+  /*margin-bottom: 1.5rem;*/
+  /*!*gap: 1rem;*!*/
+  /*flex-direction: column !important;*/
+  /*align-items: stretch !important;*/
+  /*gap: 15px !important;*/
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
 }
 
 /* Wyrównanie inputa wyszukiwania w bazie pytań */
@@ -1283,5 +1305,111 @@ textarea {
   filter: brightness(1.2);
   cursor: help;
 }
-/*.tag-admin { background: rgba(239, 68, 68, 0.2); color: #f87171; padding: 2px 8px; border-radius: 4px; }*/
-/*.tag-student { background: rgba(34, 197, 94, 0.2); color: #4ade80; padding: 2px 8px; border-radius: 4px; }*/
+
+
+.sidebar-user-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.avatar-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--primary);
+  background-color: #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.user-info-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name-small {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: white;
+}
+
+@media (max-width: 768px) {
+  /* Kluczowe: wyłączamy przesuwanie się całego kontenera */
+  .dashboard {
+    flex-direction: column !important;
+    display: block !important; /* Zmiana z flex na block pomaga na mobile */
+    width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Sidebar: wymuszamy puszczenie lewej krawędzi */
+  .sidebar {
+    width: 100% !important;
+    height: auto !important;
+    position: relative !important;
+    padding: 1rem !important;
+    border-right: none !important;
+    border-bottom: 1px solid #30363d !important;
+    left: 0 !important;
+    margin-left: 0 !important;
+  }
+
+  .sidebar-logo { margin-bottom: 1rem !important; text-align: center; }
+
+  /* Nawigacja boczna jako pozioma lista */
+  .side-nav {
+    flex-direction: row !important;
+    display: flex !important;
+    overflow-x: auto !important;
+    padding-bottom: 10px !important;
+    gap: 10px !important;
+    white-space: nowrap !important;
+    width: 100% !important;
+  }
+
+  .side-nav a { padding: 0.5rem 1rem !important; font-size: 0.85rem !important; }
+
+  /* Main Content: tutaj usuwamy ten margines, który tworzy "pustą kolumnę" */
+  .main-content {
+    margin-left: 0 !important;
+    padding: 1rem !important;
+    width: 100% !important;
+    min-width: 0 !important; /* Zapobiega wypychaniu kontenera */
+    position: relative !important;
+    left: 0 !important;
+  }
+
+  /* Naprawa tabel i statystyk - one najczęściej "wypychają" stronę w bok */
+  .admin-table-container {
+    width: 100% !important;
+    max-width: calc(100vw - 2rem) !important; /* Odejmujemy paddingi */
+    overflow-x: auto !important;
+    display: block !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .stats-grid, .quiz-grid {
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+  }
+
+  .admin-form-section {
+    width: 100% !important;
+    padding: 1rem !important;
+    margin-left: 0 !important;
+  }
+
+  /* Ukrywamy zbędne elementy na bardzo małych ekranach, które mogą psuć layout */
+  .user-name-label, .nav-section-title {
+    display: none !important;
+  }
+}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const StudentQuiz = ({ user, onBack }) => {
+const StudentQuiz = ({ user, quizId, onBack }) => {
     const [allQuizzes, setAllQuizzes] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [activeQuiz, setActiveQuiz] = useState(null);
@@ -31,6 +31,10 @@ const StudentQuiz = ({ user, onBack }) => {
     };
 
     const handleStartTest = async (quiz) => {
+        if (quiz.is_active === 0) {
+            alert("Ten egzamin jest jeszcze zablokowany!");
+            return;
+        }
         setLoading(true);
         try {
             const res = await fetch(`https://backend-webapp.michniedz.workers.dev/api/quiz/questions?quiz_id=${quiz.id}`);
@@ -80,6 +84,10 @@ const StudentQuiz = ({ user, onBack }) => {
     };
 
     const handlePreview = async (quiz) => {
+        if (quiz.is_active === 0) {
+            alert("Podgląd tego testu został zablokowany przez nauczyciela.");
+            return;
+        }
         setLoading(true);
         const res = await fetch(`https://backend-webapp.michniedz.workers.dev/api/quiz/questions?quiz_id=${quiz.id}`);
         const data = await res.json();
@@ -111,7 +119,12 @@ const StudentQuiz = ({ user, onBack }) => {
 
     // --- EFFECTY ---
 
-    useEffect(() => { fetchData(); }, [user.id]);
+    useEffect(() => {
+        fetchData();
+        if (quizId) {
+            autoStartQuiz(quizId);
+        }
+    }, [user.id, quizId]);
 
     useEffect(() => {
         if (!activeQuiz || isFinished) return;
@@ -121,11 +134,48 @@ const StudentQuiz = ({ user, onBack }) => {
     }, [activeQuiz, isFinished, timeLeft]);
 
 
+    // Nowa funkcja pomocnicza do automatycznego startu
+    const autoStartQuiz = async (id) => {
+        setLoading(true);
+        try {
+            // 1. Sprawdzamy najpierw, czy uczeń już rozwiązał ten test (korzystamy z pobranych już wyników)
+            const existingResult = userResults[id];
+
+            if (existingResult) {
+                // Jeśli wynik istnieje, zamiast uruchamiać test, od razu pokazujemy podgląd wyniku
+                // To zapobiega błędowi UNIQUE w bazie danych
+                const res = await fetch(`https://backend-webapp.michniedz.workers.dev/api/quiz/questions?quiz_id=${id}`);
+                const data = await res.json();
+                if (data.success) {
+                    setQuizData(data.data);
+                    setActiveQuiz({ id: id, title: "Wynik egzaminu" });
+                    setIsFinished(true); // Przełączamy od razu na ekran wyników
+                }
+            } else {
+                // 2. Jeśli nie ma wyniku, startujemy test normalnie
+                const res = await fetch(`https://backend-webapp.michniedz.workers.dev/api/quiz/questions?quiz_id=${id}`);
+                const data = await res.json();
+                const quizInfo = allQuizzes.find(q => q.id === parseInt(id));
+                if (data.success) {
+                    setQuizData(data.data);
+                    setActiveQuiz({ id: id, title: quizInfo ? quizInfo.title : "Egzamin" });
+                    setTimeLeft(3600);
+                    setAnswers({});
+                    setCurrentStep(0);
+                    setIsFinished(false);
+                }
+            }
+        } catch (err) {
+            console.error("Błąd auto-startu:", err);
+        }
+        setLoading(false);
+    };
+
     // --- RENDERING (LOGIKA WYBORU EKRANU) ---
 
     if (loading) return <div className="loader">Ładowanie danych egzaminu...</div>;
 
-    if (!selectedCategory) {
+    if (!selectedCategory && !activeQuiz) {
         return (
             <section className="quiz-selection-view">
                 <h3>Wybierz kwalifikację:</h3>
@@ -150,27 +200,53 @@ const StudentQuiz = ({ user, onBack }) => {
                 <div className="stats-grid">
                     {filteredQuizzes.map(quiz => {
                         const result = userResults[quiz.id];
-                        const isLocked = result && result.status !== 'reset_requested';
+
+                        const isDeactivated = quiz.is_active === 0;
+                        const hasResult = !!result;
                         const isPendingReset = result && result.status === 'reset_requested';
 
+                        // Styl dla zablokowanej karty (ale z widocznym wynikiem)
+                        const cardStyle = isDeactivated ? { border: '1px solid #475569', opacity: 0.8 } : {};
+
                         return (
-                            <div key={quiz.id} className={`stat-card ${isLocked || isPendingReset ? 'locked' : 'clickable'}`}>
+                            <div key={quiz.id} className={`stat-card ${hasResult || isDeactivated ? 'locked' : 'clickable'}`} style={cardStyle}>
                                 <p>Arkusz #{quiz.id}</p>
                                 <h3>{quiz.title}</h3>
-                                {isPendingReset ? (
-                                    <div className="quiz-result-tag" style={{background: 'rgba(234, 179, 8, 0.1)', color: '#eab308'}}>
-                                        ⌛ Oczekiwanie na reset...
-                                    </div>
-                                ) : result ? (
+
+                                {/* SCENARIUSZ 1: Uczeń już rozwiązał test */}
+                                {hasResult ? (
                                     <div className="quiz-result-tag">
                                         Wynik: <strong>{result.percent}%</strong>
-                                        <div style={{marginTop: '10px', display: 'flex', gap: '5px'}}>
-                                            <button className="btn-small" onClick={() => handlePreview(quiz)}>👁️ Podgląd</button>
-                                            <button className="btn-small btn-secondary" onClick={() => requestReset(quiz.id)}>🔄 Reset</button>
-                                        </div>
+
+                                        {isDeactivated ? (
+                                            /* Test wyłączony - uczeń widzi wynik, ale nie może wejść w podgląd */
+                                            <p style={{color: '#94a3b8', fontSize: '0.75rem', marginTop: '8px'}}>
+                                                🔒 Arkusz zamknięty przez nauczyciela (podgląd niedostępny)
+                                            </p>
+                                        ) : isPendingReset ? (
+                                            /* Prośba o reset wysłana */
+                                            <div style={{marginTop: '10px', color: '#eab308', fontSize: '0.8rem'}}>
+                                                ⌛ Oczekiwanie na reset...
+                                            </div>
+                                        ) : (
+                                            /* Test aktywny - uczeń może wejść w podgląd lub poprosić o reset */
+                                            <div style={{marginTop: '10px', display: 'flex', gap: '5px'}}>
+                                                <button className="btn-small" onClick={() => handlePreview(quiz)}>👁️ Podgląd</button>
+                                                <button className="btn-small btn-secondary" onClick={() => requestReset(quiz.id)}>🔄 Reset</button>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
-                                    <span onClick={() => handleStartTest(quiz)}>Rozpocznij egzamin →</span>
+                                    /* SCENARIUSZ 2: Uczeń jeszcze nie rozwiązał testu */
+                                    <>
+                                        {isDeactivated ? (
+                                            <div className="quiz-result-tag" style={{background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444'}}>
+                                                🔒 Test obecnie nieaktywny
+                                            </div>
+                                        ) : (
+                                            <span onClick={() => handleStartTest(quiz)}>Rozpocznij egzamin →</span>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         );

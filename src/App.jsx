@@ -1,32 +1,54 @@
 import React, { useState } from 'react';
-import LandingPage from './views/LandingPage'; // Import Twojej starej strony
+import LandingPage from './views/LandingPage';
 import LoginPage from './views/LoginPage';
 import StudentPanel from './views/StudentPanel';
 import AdminPanel from './views/AdminPanel';
 import './App.css';
 
 function App() {
-    const [user, setUser] = useState(null);
-    const [isLoggingIn, setIsLoggingIn] = useState(false); // Czy użytkownik kliknął "Zaloguj się"?
+    // 1. Definiujemy stan użytkownika.
+    // Próbujemy pobrać dane z localStorage przy starcie aplikacji.
+    const [user, setUser] = useState(() => {
+        const savedUser = localStorage.getItem('user');
+        return savedUser ? JSON.parse(savedUser) : null;
+    });
 
-    const handleLoginSuccess = (userData) => {
-        setUser(userData);
-        setIsLoggingIn(false); // Ukrywamy widok logowania po sukcesie
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+    // 2. Funkcja aktualizacji danych (np. awatara lub imienia)
+    const updateUserData = (newData) => {
+        setUser(prev => {
+            if (!prev) return null;
+            const updated = { ...prev, ...newData };
+            // Zapisujemy zmiany w localStorage, żeby nie zniknęły po odświeżeniu
+            localStorage.setItem('user', JSON.stringify(updated));
+            return updated;
+        });
     };
 
-    const handleLogout = () => {
-        setUser(null);
+    // 3. Logika po udanym logowaniu
+    const handleLoginSuccess = (userData) => {
+        setUser(userData);
+        // Zapisujemy sesję w przeglądarce
+        localStorage.setItem('user', JSON.stringify(userData));
         setIsLoggingIn(false);
     };
 
-    // 1. Jeśli użytkownik jest zalogowany -> Pokaż odpowiedni panel
+    // 4. Logika wylogowania
+    const handleLogout = () => {
+        setUser(null);
+        // Czyścimy pamięć przeglądarki
+        localStorage.removeItem('user');
+        setIsLoggingIn(false);
+    };
+
+    // Renderowanie widoków
     if (user) {
         return user.role === 'admin'
             ? <AdminPanel user={user} onLogout={handleLogout} />
-            : <StudentPanel user={user} onLogout={handleLogout} />;
+            : <StudentPanel user={user} onUpdateUser={updateUserData} onLogout={handleLogout} />;
     }
 
-    // 2. Jeśli użytkownik kliknął przycisk logowania -> Pokaż LoginPage
     if (isLoggingIn) {
         return <LoginPage
             onLoginSuccess={handleLoginSuccess}
@@ -34,7 +56,6 @@ function App() {
         />;
     }
 
-    // 3. Domyślnie pokazywana strona (Twoje informacje podstawowe)
     return <LandingPage onLogin={() => setIsLoggingIn(true)} />;
 }
 

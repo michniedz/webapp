@@ -1,0 +1,90 @@
+CREATE TABLE courses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE
+, enrollment_key TEXT)
+
+CREATE TABLE materials (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    course_id INTEGER,
+    title TEXT NOT NULL,
+    content_type TEXT CHECK(content_type IN ('link', 'html')),
+    content_value TEXT, -- Tutaj będzie albo URL do Google Drive, albo kod HTML
+    FOREIGN KEY (course_id) REFERENCES courses(id)
+)
+
+CREATE TABLE quiz_items (
+  quiz_id INTEGER NOT NULL,
+  question_id INTEGER NOT NULL,
+  PRIMARY KEY (quiz_id, question_id),
+  FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE,
+  FOREIGN KEY (question_id) REFERENCES quiz_questions(id) ON DELETE CASCADE
+)
+
+CREATE TABLE quiz_questions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category TEXT NOT NULL, -- 'INF.03' lub 'INF.04'
+    question TEXT NOT NULL,
+    ans_a TEXT NOT NULL,
+    ans_b TEXT NOT NULL,
+    ans_c TEXT NOT NULL,
+    ans_d TEXT NOT NULL,
+    correct_ans CHAR(1) NOT NULL -- 'A', 'B', 'C' lub 'D',
+    quiz_id INTEGER REFERENCES quizzes(id)
+)
+
+CREATE TABLE quiz_results (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  quiz_id INTEGER NOT NULL,
+  score INTEGER NOT NULL,
+  total_questions INTEGER NOT NULL,
+  percent INTEGER NOT NULL,
+  completed_at DATETIME DEFAULT CURRENT_TIMESTAMP, status TEXT DEFAULT 'completed',
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  FOREIGN KEY (quiz_id) REFERENCES quizzes(id),
+  UNIQUE(user_id, quiz_id) -- To gwarantuje tylko jedno podejście na użytkownika!
+)
+
+CREATE TABLE quizzes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL, -- INF.03 / INF.04
+  description TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)
+
+CREATE TABLE user_courses (
+    user_id INTEGER,
+    course_id INTEGER,
+    enrolled_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, course_id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (course_id) REFERENCES courses(id)
+)
+
+CREATE TABLE "users" (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL UNIQUE,
+  password TEXT NOT NULL,
+  first_name TEXT,
+  last_name TEXT,
+  role TEXT CHECK(role IN ('student', 'admin')) DEFAULT 'student',
+  status TEXT DEFAULT 'pending',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  avatar TEXT)
+
+CREATE TABLE course_quizzes (
+    course_id INTEGER NOT NULL,
+    quiz_id INTEGER NOT NULL,
+    PRIMARY KEY (course_id, quiz_id),
+    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+    FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE
+);
+
+CREATE TABLE login_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    login_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    ip_address TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+)

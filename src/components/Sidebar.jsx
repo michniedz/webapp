@@ -60,12 +60,25 @@ const Sidebar = ({ onLogout, user, myCourses = [], onSelectCourse, activeCourseI
                         <a href="#" onClick={(e) => { e.preventDefault(); onMenuClick('student-quiz'); }}>
                             📝 Egzaminy
                         </a>
+                        <a href="#" onClick={(e) => { e.preventDefault(); onMenuClick('profile'); }}>
+                            👤 Moje Informacje
+                        </a>
                     </>
                 )}
             </nav>
 
             <div className="sidebar-footer">
-                <p className="user-name-label">{user?.full_name}</p>
+                <div className="sidebar-user-box">
+                    {user?.avatar ? (
+                        <img src={user.avatar} alt="Avatar" className="avatar-circle" />
+                    ) : (
+                        <div className="avatar-circle">👤</div>
+                    )}
+                    <div className="user-info-text">
+                        <span className="user-name-small">{user?.first_name} {user?.last_name}</span>
+                        <span style={{fontSize: '0.7rem', color: '#94a3b8'}}>Student</span>
+                    </div>
+                </div>
                 <button className="logout-btn" onClick={onLogout}>Wyloguj się</button>
             </div>
         </aside>
