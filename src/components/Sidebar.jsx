@@ -1,12 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const Sidebar = ({ onLogout, user, myCourses = [], onSelectCourse, activeCourseId, onMenuClick }) => {
     const isAdmin = user?.role === 'admin';
+    const [collapsed, setCollapsed] = useState(false);
 
     return (
-        <aside className="sidebar">
+        <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
             <div className="sidebar-logo">
-                Tech<span>Panel</span>
+                {collapsed ? (
+                    <span className="logo-mark">⚡</span>
+                ) : (
+                    <>Tech<span>Panel</span></>
+                )}
+                <button
+                    className="collapse-btn"
+                    onClick={() => setCollapsed(!collapsed)}
+                    title={collapsed ? 'Rozwiń menu' : 'Zwiń menu'}
+                    aria-label={collapsed ? 'Rozwiń menu' : 'Zwiń menu'}
+                >
+                    {collapsed ? '»' : '«'}
+                </button>
             </div>
 
             <nav className="side-nav">
@@ -14,31 +27,31 @@ const Sidebar = ({ onLogout, user, myCourses = [], onSelectCourse, activeCourseI
                     /* --- MENU DLA ADMINISTRATORA --- */
                     <>
                         <p className="nav-section-title">ZARZĄDZANIE</p>
-                        <a href="#" className={!activeCourseId ? "active" : ""} onClick={(e) => { e.preventDefault(); onMenuClick('dashboard'); }}>
-                            🏠 Pulpit
+                        <a href="#" className={!activeCourseId ? "active" : ""} onClick={(e) => { e.preventDefault(); onMenuClick('dashboard'); }} title="Pulpit">
+                            🏠 <span className="nav-label">Pulpit</span>
                         </a>
-                        <a href="#" onClick={(e) => { e.preventDefault(); onMenuClick('courses'); }}>
-                            📚 Kursy
+                        <a href="#" onClick={(e) => { e.preventDefault(); onMenuClick('courses'); }} title="Kursy">
+                            📚 <span className="nav-label">Kursy</span>
                         </a>
-                        <a href="#" onClick={(e) => { e.preventDefault(); onMenuClick('users'); }}>
-                            👥 Użytkownicy
+                        <a href="#" onClick={(e) => { e.preventDefault(); onMenuClick('users'); }} title="Użytkownicy">
+                            👥 <span className="nav-label">Użytkownicy</span>
                         </a>
-                        <a href="#" onClick={(e) => { e.preventDefault(); onMenuClick('quiz'); }}>
-                            📝 Quizy
+                        <a href="#" onClick={(e) => { e.preventDefault(); onMenuClick('quiz'); }} title="Quizy">
+                            📝 <span className="nav-label">Quizy</span>
                         </a>
-                        <a href="#" onClick={(e) => { e.preventDefault(); onMenuClick('results'); }}>
-                            📝 Wyniki
+                        <a href="#" onClick={(e) => { e.preventDefault(); onMenuClick('results'); }} title="Wyniki">
+                            📊 <span className="nav-label">Wyniki</span>
                         </a>
-                        <a href="#" onClick={(e) => { e.preventDefault(); onMenuClick('materials'); }}>
-                            📂 Materiały
+                        <a href="#" onClick={(e) => { e.preventDefault(); onMenuClick('materials'); }} title="Materiały">
+                            📂 <span className="nav-label">Materiały</span>
                         </a>
                     </>
                 ) : (
                     /* --- MENU DLA STUDENTA --- */
                     <>
                         <p className="nav-section-title">GŁÓWNE</p>
-                        <a href="#" className={!activeCourseId ? "active" : ""} onClick={(e) => { e.preventDefault(); onSelectCourse(null); }}>
-                            🏠 Pulpit / Zapisz się
+                        <a href="#" className={!activeCourseId ? "active" : ""} onClick={(e) => { e.preventDefault(); onSelectCourse(null); }} title="Pulpit / Zapisz się">
+                            🏠 <span className="nav-label">Pulpit / Zapisz się</span>
                         </a>
 
                         <p className="nav-section-title">MOJE KURSY</p>
@@ -50,8 +63,9 @@ const Sidebar = ({ onLogout, user, myCourses = [], onSelectCourse, activeCourseI
                                         href="#"
                                         className={activeCourseId === course.id ? "active" : ""}
                                         onClick={(e) => { e.preventDefault(); onSelectCourse(course); }}
+                                        title={course.name}
                                     >
-                                        📘 {course.name}
+                                        📘 <span className="nav-label">{course.name}</span>
                                     </a>
                                 ))
                             ) : (
@@ -60,11 +74,11 @@ const Sidebar = ({ onLogout, user, myCourses = [], onSelectCourse, activeCourseI
                         </div>
 
                         <p className="nav-section-title">NAUKA</p>
-                        <a href="#" onClick={(e) => { e.preventDefault(); onMenuClick('student-quiz'); }}>
-                            📝 Egzaminy
+                        <a href="#" onClick={(e) => { e.preventDefault(); onMenuClick('student-quiz'); }} title="Egzaminy">
+                            📝 <span className="nav-label">Egzaminy</span>
                         </a>
-                        <a href="#" onClick={(e) => { e.preventDefault(); onMenuClick('profile'); }}>
-                            👤 Moje Informacje
+                        <a href="#" onClick={(e) => { e.preventDefault(); onMenuClick('profile'); }} title="Moje Informacje">
+                            👤 <span className="nav-label">Moje Informacje</span>
                         </a>
                     </>
                 )}
@@ -79,23 +93,23 @@ const Sidebar = ({ onLogout, user, myCourses = [], onSelectCourse, activeCourseI
                     )}
                     <div className="user-info-text">
                         <span className="user-name-small">{user?.first_name} {user?.last_name}</span>
-                        {/* ZMIANA TUTAJ: Dynamiczna etykieta roli */}
-                        <span style={{fontSize: '0.7rem', color: '#94a3b8'}}>
-                {isAdmin ? 'Administrator' : 'Student'}
-            </span>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
+                            {isAdmin ? 'Administrator' : 'Student'}
+                        </span>
                     </div>
                 </div>
 
-                {/* Opcjonalnie: Jeśli chcesz, aby admin też mógł wejść w edycję swojego profilu */}
-                {/*{isAdmin && (*/}
-                {/*    <a href="#"*/}
-                {/*       style={{fontSize: '0.75rem', color: 'var(--primary)', marginBottom: '10px', display: 'block', textDecoration: 'none'}}*/}
-                {/*       onClick={(e) => { e.preventDefault(); onMenuClick('profile'); }}>*/}
-                {/*        ⚙️ Ustawienia konta*/}
-                {/*    </a>*/}
-                {/*)}*/}
-
-                <button className="logout-btn" onClick={onLogout}>Wyloguj się</button>
+                <button className="logout-btn" onClick={onLogout} title="Wyloguj się">
+                    {collapsed ? (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                    ) : (
+                        'Wyloguj się'
+                    )}
+                </button>
             </div>
         </aside>
     );

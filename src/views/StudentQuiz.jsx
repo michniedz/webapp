@@ -206,7 +206,7 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
                         const isPendingReset = result && result.status === 'reset_requested';
 
                         // Styl dla zablokowanej karty (ale z widocznym wynikiem)
-                        const cardStyle = isDeactivated ? { border: '1px solid #475569', opacity: 0.8 } : {};
+                        const cardStyle = isDeactivated ? { border: '1px solid var(--border-strong)', opacity: 0.8 } : {};
 
                         return (
                             <div key={quiz.id} className={`stat-card ${hasResult || isDeactivated ? 'locked' : 'clickable'}`} style={cardStyle}>
@@ -220,12 +220,12 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
 
                                         {isDeactivated ? (
                                             /* Test wyłączony - uczeń widzi wynik, ale nie może wejść w podgląd */
-                                            <p style={{color: '#94a3b8', fontSize: '0.75rem', marginTop: '8px'}}>
+                                            <p style={{color: 'var(--text-dim)', fontSize: '0.75rem', marginTop: '8px'}}>
                                                 🔒 Arkusz zamknięty przez nauczyciela (podgląd niedostępny)
                                             </p>
                                         ) : isPendingReset ? (
                                             /* Prośba o reset wysłana */
-                                            <div style={{marginTop: '10px', color: '#eab308', fontSize: '0.8rem'}}>
+                                            <div style={{marginTop: '10px', color: 'var(--warning)', fontSize: '0.8rem'}}>
                                                 ⌛ Oczekiwanie na reset...
                                             </div>
                                         ) : (
@@ -240,7 +240,7 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
                                     /* SCENARIUSZ 2: Uczeń jeszcze nie rozwiązał testu */
                                     <>
                                         {isDeactivated ? (
-                                            <div className="quiz-result-tag" style={{background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444'}}>
+                                            <div className="quiz-result-tag" style={{background: 'rgba(220, 38, 38, 0.08)', color: 'var(--danger)'}}>
                                                 🔒 Test obecnie nieaktywny
                                             </div>
                                         ) : (
@@ -310,7 +310,7 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
                                                 maxWidth: '200px', // Mniejsze w podglądzie wyników
                                                 maxHeight: '150px',
                                                 borderRadius: '6px',
-                                                border: '1px solid #334155'
+                                                border: '1px solid var(--border)'
                                             }}
                                         />
                                     </div>
@@ -356,9 +356,9 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
                         textAlign: 'center',
                         marginBottom: '1.5rem',
                         padding: '10px',
-                        background: 'rgba(255, 255, 255, 0.03)',
+                        background: 'rgba(15, 23, 42, 0.02)',
                         borderRadius: '12px',
-                        border: '1px solid #334155'
+                        border: '1px solid var(--border)'
                     }}>
                         <img
                             src={q.image_url}

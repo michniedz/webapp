@@ -537,11 +537,11 @@ const AdminPanel = ({ onLogout, user }) => {
                                     onChange={(e) => handleCSVImport(e, selectedQuizId)}
                                     style={{
                                         width: '100%',
-                                        padding: '10px',
-                                        background: '#0f172a',
-                                        color: 'white',
+                                        padding: '12px',
+                                        background: 'var(--surface-2)',
+                                        color: 'var(--text)',
                                         borderRadius: '8px',
-                                        border: '1px solid #334155',
+                                        border: '1px dashed var(--primary)',
                                         cursor: 'pointer'
                                     }}
                                 />
@@ -835,7 +835,7 @@ const AdminPanel = ({ onLogout, user }) => {
                                     <button
                                         type="button"
                                         className="btn-edit"
-                                        style={{ marginTop: '1rem', background: '#475569' }}
+                                        style={{ marginTop: '1rem' }}
                                         onClick={handleShowPreview}
                                     >
                                         👁️ Podgląd na żywo
@@ -903,7 +903,7 @@ const AdminPanel = ({ onLogout, user }) => {
                                         src={getEmbedUrl(previewData.content_value)}
                                         width="100%"
                                         height="100%"
-                                        style={{ border: '2px dashed #334155', borderRadius: '8px' }}
+                                        style={{ border: '2px dashed var(--border-strong)', borderRadius: '8px' }}
                                     ></iframe>
                                 ) : (
                                     <div
@@ -913,7 +913,7 @@ const AdminPanel = ({ onLogout, user }) => {
                                     />
                                 )}
                             </div>
-                            <p style={{ color: '#94a3b8', fontSize: '0.8rem', textAlign: 'center' }}>
+                            <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem', textAlign: 'center' }}>
                                 Jeśli widzisz błąd logowania Google, upewnij się, że plik ma uprawnienia: "Każda osoba mająca link".
                             </p>
                         </div>

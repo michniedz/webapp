@@ -259,7 +259,7 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
                             <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                                 <div style={{
                                     width: '100px', height: '100px', borderRadius: '50%',
-                                    backgroundColor: '#334155', margin: '0 auto 1rem',
+                                    backgroundColor: 'var(--surface-2)', margin: '0 auto 1rem',
                                     overflow: 'hidden', border: '2px solid var(--primary)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center'
                                 }}>
@@ -331,7 +331,7 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
                                 />
                             </div>
 
-                            <div style={{ marginTop: '1.5rem', borderTop: '1px solid #334155', paddingTop: '1.5rem' }}>
+                            <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
                                 <label>Nowe Hasło (zostaw puste, by nie zmieniać)</label>
                                 <input
                                     type="password"
@@ -344,7 +344,7 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
                             <button type="submit" className="login-submit-btn" style={{ marginTop: '2rem' }}>
                                 Zapisz zmiany
                             </button>
-                            <div style={{ marginTop: '3rem', borderTop: '1px solid #334155', paddingTop: '1.5rem' }}>
+                            <div style={{ marginTop: '3rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
                                 <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--primary)' }}>
                                     🕒 Ostatnie logowania na konto
                                 </h3>
@@ -392,7 +392,7 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
                                         <div className="stats-grid">
                                             <div className="stat-card">
                                                 <p>Średni wynik</p>
-                                                <h3 style={{ color: stats.avgPercent >= 50 ? '#22c55e' : '#ef4444', margin: '0.5rem 0' }}>
+                                                <h3 style={{ color: stats.avgPercent >= 50 ? '#16a34a' : '#dc2626', margin: '0.5rem 0' }}>
                                                     {stats.avgPercent}%
                                                 </h3>
                                             </div>
@@ -497,7 +497,7 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
                                 </div>
 
                                 <div className="course-quizzes-section" style={{ marginTop: '3rem' }}>
-                                    <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid #334155', paddingBottom: '0.5rem' }}>
+                                    <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                                         🏆 Testy i Arkusze
                                     </h3>
                                     {courseQuizzes.length > 0 ? (
@@ -514,7 +514,7 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <h4 style={{ margin: '0.5rem 0', color: 'var(--text-main)' }}>{quiz.title}</h4>
+                                                        <h4 style={{ margin: '0.5rem 0', color: 'var(--text)' }}>{quiz.title}</h4>
 
                                                         <button
                                                             className="login-submit-btn"
