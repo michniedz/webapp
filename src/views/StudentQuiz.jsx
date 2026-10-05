@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiFetch } from '../lib/api';
 
 const StudentQuiz = ({ user, quizId, onBack }) => {
     const [allQuizzes, setAllQuizzes] = useState([]);
@@ -11,13 +12,14 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
     const [isFinished, setIsFinished] = useState(false);
     const [loading, setLoading] = useState(false);
     const [timeLeft, setTimeLeft] = useState(3600);
+    const [serverResult, setServerResult] = useState(null);
 
     // --- FUNKCJE POMOCNICZE (MUSZĄ BYĆ NA GÓRZE) ---
 
     const fetchData = async () => {
         const [qRes, rRes] = await Promise.all([
-            fetch('https://backend-webapp.michniedz.workers.dev/api/quizzes'),
-            fetch(`https://backend-webapp.michniedz.workers.dev/api/my-results?user_id=${user.id}`)
+            apiFetch('/api/quizzes'),
+            apiFetch('/api/my-results')
         ]);
         const qData = await qRes.json();
         const rData = await rRes.json();
@@ -37,7 +39,7 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
         }
         setLoading(true);
         try {
-            const res = await fetch(`https://backend-webapp.michniedz.workers.dev/api/quiz/questions?quiz_id=${quiz.id}`);
+            const res = await apiFetch(`/api/quiz/questions?quiz_id=${quiz.id}`);
             const data = await res.json();
             if (data.success) {
                 setQuizData(data.data);
@@ -53,32 +55,24 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
         setLoading(false);
     };
 
-    const calculateResult = () => {
-        let score = 0;
-        quizData.forEach((q, index) => {
-            if (answers[index]?.toUpperCase() === q.correct_ans?.toUpperCase()) score++;
-        });
-        return {
-            score,
-            total: quizData.length,
-            percent: quizData.length > 0 ? Math.round((score / quizData.length) * 100) : 0
-        };
-    };
-
     const finishAndSave = async () => {
-        const result = calculateResult();
         try {
-            const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/quiz/save-result', {
+            const res = await apiFetch('/api/quiz/submit', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    user_id: user.id, quiz_id: activeQuiz.id,
-                    score: result.score, total: result.total, percent: result.percent
+                    quiz_id: activeQuiz.id,
+                    answers
                 })
             });
-            if ((await res.json()).success) {
+            const data = await res.json();
+            if (data.success) {
+                setQuizData(data.questions);        // pytania z kluczem (do analizy)
+                setAnswers(data.your_answers || {}); // odpowiedzi ucznia
+                setServerResult(data.result);
                 setIsFinished(true);
                 fetchData();
+            } else {
+                alert(data.error || "Błąd zapisu.");
             }
         } catch (err) { alert("Błąd zapisu."); }
     };
@@ -89,21 +83,22 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
             return;
         }
         setLoading(true);
-        const res = await fetch(`https://backend-webapp.michniedz.workers.dev/api/quiz/questions?quiz_id=${quiz.id}`);
+        const res = await apiFetch(`/api/quiz/review?quiz_id=${quiz.id}`);
         const data = await res.json();
         if (data.success) {
             setQuizData(data.data);
             setActiveQuiz(quiz);
+            setAnswers(data.your_answers || {});
+            setServerResult(data.result || null);
             setIsFinished(true);
         }
         setLoading(false);
     };
 
     const requestReset = async (quizId) => {
-        const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/quiz/request-reset', {
+        const res = await apiFetch('/api/quiz/request-reset', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: user.id, quiz_id: quizId })
+            body: JSON.stringify({ quiz_id: quizId })
         });
         if ((await res.json()).success) {
             alert("Prośba o ponowne rozwiązanie została wysłana do administratora.");
@@ -138,22 +133,21 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
     const autoStartQuiz = async (id) => {
         setLoading(true);
         try {
-            // 1. Sprawdzamy najpierw, czy uczeń już rozwiązał ten test (korzystamy z pobranych już wyników)
-            const existingResult = userResults[id];
+            // 1. Sprawdź na serwerze, czy uczeń już rozwiązał ten test (przez /api/quiz/review,
+            //    które zwraca 403, jeśli wyniku jeszcze nie ma).
+            const reviewRes = await apiFetch(`/api/quiz/review?quiz_id=${id}`);
+            const reviewData = await reviewRes.json();
 
-            if (existingResult) {
-                // Jeśli wynik istnieje, zamiast uruchamiać test, od razu pokazujemy podgląd wyniku
-                // To zapobiega błędowi UNIQUE w bazie danych
-                const res = await fetch(`https://backend-webapp.michniedz.workers.dev/api/quiz/questions?quiz_id=${id}`);
-                const data = await res.json();
-                if (data.success) {
-                    setQuizData(data.data);
-                    setActiveQuiz({ id: id, title: "Wynik egzaminu" });
-                    setIsFinished(true); // Przełączamy od razu na ekran wyników
-                }
+            if (reviewData.success) {
+                // Uczeń już rozwiązał test — pokazujemy pełny podgląd wyniku.
+                setQuizData(reviewData.data);
+                setActiveQuiz({ id: id, title: "Wynik egzaminu" });
+                setAnswers(reviewData.your_answers || {});
+                setServerResult(reviewData.result || null);
+                setIsFinished(true);
             } else {
-                // 2. Jeśli nie ma wyniku, startujemy test normalnie
-                const res = await fetch(`https://backend-webapp.michniedz.workers.dev/api/quiz/questions?quiz_id=${id}`);
+                // 2. Brak wyniku — startujemy test normalnie (pytania BEZ klucza odpowiedzi).
+                const res = await apiFetch(`/api/quiz/questions?quiz_id=${id}`);
                 const data = await res.json();
                 const quizInfo = allQuizzes.find(q => q.id === parseInt(id));
                 if (data.success) {
@@ -258,12 +252,12 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
     }
 
     if (isFinished) {
-        const savedResult = userResults[activeQuiz?.id];
+        const savedResult = userResults[activeQuiz?.id] || serverResult;
         const displayResult = savedResult ? {
             percent: savedResult.percent,
             score: savedResult.score,
             total: savedResult.total_questions
-        } : calculateResult();
+        } : { percent: 0, score: 0, total: 0 };
 
         return (
             <section className="quiz-results">
@@ -280,7 +274,7 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
                 <h3>Szczegółowa analiza:</h3>
                 <div className="review-list">
                     {quizData.map((q, index) => {
-                        const studentAns = answers[index]?.toUpperCase();
+                        const studentAns = (answers[q.id] || '').toUpperCase();
                         const correctAns = q.correct_ans?.toUpperCase();
 
                         // Sprawdzamy czy uczeń w ogóle odpowiedział i czy poprawnie
@@ -375,8 +369,8 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
                 )}
                 <div className="quiz-options-list">
                     {['A', 'B', 'C', 'D'].map(key => (
-                        <button key={key} className={`quiz-option-btn ${answers[currentStep] === key ? 'selected' : ''}`}
-                                onClick={() => setAnswers({ ...answers, [currentStep]: key })}>
+                        <button key={key} className={`quiz-option-btn ${answers[q?.id] === key ? 'selected' : ''}`}
+                                onClick={() => setAnswers({ ...answers, [q?.id]: key })}>
                             <strong>{key}.</strong> {q?.[`ans_${key.toLowerCase()}`]}
                         </button>
                     ))}

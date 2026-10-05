@@ -1,6 +1,8 @@
 import React, {useEffect, useRef, useState} from 'react';
 import Sidebar from '../components/Sidebar';
 import StudentQuiz from "./StudentQuiz.jsx";
+import DOMPurify from 'dompurify';
+import { apiFetch } from '../lib/api';
 
 const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
     const fileInputRef = useRef(null);
@@ -76,13 +78,9 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
 
     const handleUpdateProfile = async (e) => {
         e.preventDefault();
-        const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/user/update', {
+        const res = await apiFetch('/api/user/update', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                id: user.id,
-                ...profileData
-            })
+            body: JSON.stringify(profileData)
         });
 
         const data = await res.json();
@@ -107,7 +105,7 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
 
     const fetchLoginHistory = async () => {
         try {
-            const res = await fetch(`https://backend-webapp.michniedz.workers.dev/api/user/login-history?user_id=${user.id}`);
+            const res = await apiFetch('/api/user/login-history');
             const data = await res.json();
             if (data.success) {
                 setLoginHistory(data.data);
@@ -118,19 +116,19 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
     };
 
     const fetchMyCourses = async () => {
-        const res = await fetch(`https://backend-webapp.michniedz.workers.dev/api/my-courses?user_id=${user.id}`);
+        const res = await apiFetch('/api/my-courses');
         const data = await res.json();
         if (data.success) setMyCourses(data.data);
     };
 
     const fetchCourses = async () => {
-        const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/courses');
+        const res = await apiFetch('/api/courses');
         const data = await res.json();
         if (data.success) setCourses(data.data);
     };
 
     const fetchQuizResults = async () => {
-        const res = await fetch(`https://backend-webapp.michniedz.workers.dev/api/my-results?user_id=${user.id}`);
+        const res = await apiFetch('/api/my-results');
         const data = await res.json();
         if (data.success) {
             const resultsMap = {};
@@ -142,7 +140,7 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
     const fetchCourseQuizzes = async (courseName) => {
         try {
             // Wysyłamy nazwę kursu jako kategorię
-            const res = await fetch(`https://backend-webapp.michniedz.workers.dev/api/course/quizzes?course_name=${encodeURIComponent(courseName)}`);
+            const res = await apiFetch(`/api/course/quizzes?course_name=${encodeURIComponent(courseName)}`);
             const data = await res.json();
             if (data.success) setCourseQuizzes(data.data);
         } catch (err) {
@@ -161,7 +159,7 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
         setSelectedCourse(course);
 
         // Pobieranie materiałów
-        const resM = await fetch(`https://backend-webapp.michniedz.workers.dev/api/materials?course_id=${course.id}`);
+        const resM = await apiFetch(`/api/materials?course_id=${course.id}`);
         const dataM = await resM.json();
         if (dataM.success) setMaterials(dataM.data);
 
@@ -173,11 +171,9 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
         e.preventDefault();
         if (!enrollData.courseId) return alert("Wybierz kurs z listy!");
 
-        const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/enroll', {
+        const res = await apiFetch('/api/enroll', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                user_id: user.id,
                 course_id: parseInt(enrollData.courseId),
                 key: enrollData.key
             })
@@ -436,7 +432,7 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
                                                 required
                                             >
                                                 <option value="">-- Dostępne kursy --</option>
-                                                {courses.map(c => (
+                                                {courses.filter(c => !c.enrolled).map(c => (
                                                     <option key={c.id} value={c.id}>{c.name}</option>
                                                 ))}
                                             </select>
@@ -545,7 +541,7 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
                             <button className="close-modal" onClick={() => setViewHtml(null)}>×</button>
                             <h2>{viewHtml.title}</h2>
                             <hr />
-                            <div className="html-render" dangerouslySetInnerHTML={{ __html: viewHtml.content_value }} />
+                            <div className="html-render" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(viewHtml.content_value) }} />
                         </div>
                     </div>
                 )}

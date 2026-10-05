@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
+import DOMPurify from 'dompurify';
+import { apiFetch } from '../lib/api';
 
 const AdminPanel = ({ onLogout, user }) => {
     // --- STANY GŁÓWNE ---
@@ -40,7 +42,7 @@ const AdminPanel = ({ onLogout, user }) => {
     const [previewData, setPreviewData] = useState(null);
 
     const fetchAllMaterials = async () => {
-        const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/materials');
+        const res = await apiFetch('/api/materials');
         const data = await res.json();
         if (data.success) setAllMaterials(data.data);
     };
@@ -55,37 +57,37 @@ const AdminPanel = ({ onLogout, user }) => {
 
     // --- FUNKCJE POBIERANIA DANYCH (API) ---
     const fetchStats = async () => {
-        const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/admin/stats');
+        const res = await apiFetch('/api/admin/stats');
         const data = await res.json();
         if (data.success) setStats(data.data);
     };
 
     const fetchCourses = async () => {
-        const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/courses');
+        const res = await apiFetch('/api/admin/courses');
         const data = await res.json();
         if (data.success) setCourses(data.data);
     };
 
     const fetchUsers = async () => {
-        const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/admin/users');
+        const res = await apiFetch('/api/admin/users');
         const data = await res.json();
         if (data.success) setUsers(data.data);
     };
 
     const fetchQuestions = async () => {
-        const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/admin/quiz');
+        const res = await apiFetch('/api/admin/quiz');
         const data = await res.json();
         if (data.success) setQuestions(data.data);
     };
 
     const fetchQuizzes = async () => {
-        const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/quizzes?admin=true');
+        const res = await apiFetch('/api/quizzes?admin=true');
         const data = await res.json();
         if (data.success) setQuizzes(data.data);
     };
     const fetchAllResults = async () => {
         try {
-            const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/admin/results');
+            const res = await apiFetch('/api/admin/results');
             const data = await res.json();
             if (data.success) setAllResults(data.data);
         } catch (err) {
@@ -96,7 +98,7 @@ const AdminPanel = ({ onLogout, user }) => {
     // Funkcja pobierająca pytania tylko dla wybranego arkusza
     const fetchSelectedQuizQuestions = async (quizId) => {
         if (!quizId) return;
-        const res = await fetch(`https://backend-webapp.michniedz.workers.dev/api/quiz/questions?quiz_id=${quizId}`);
+        const res = await apiFetch(`/api/admin/quiz/questions?quiz_id=${quizId}`);
         const data = await res.json();
         if (data.success) setSelectedQuizQuestions(data.data);
     };
@@ -138,7 +140,7 @@ const AdminPanel = ({ onLogout, user }) => {
 
     const handleDeleteMaterial = async (id) => {
         if (!confirm("Czy na pewno chcesz usunąć ten materiał?")) return;
-        const res = await fetch(`https://backend-webapp.michniedz.workers.dev/api/admin/materials?id=${id}`, {
+        const res = await apiFetch(`/api/admin/materials?id=${id}`, {
             method: 'DELETE'
         });
         if ((await res.json()).success) {
@@ -149,7 +151,7 @@ const AdminPanel = ({ onLogout, user }) => {
 
     // --- HANDLERY AKCJI ---
     const handleUpdateCourse = async (course) => {
-        const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/admin/courses', {
+        const res = await apiFetch('/api/admin/courses', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(course)
@@ -163,7 +165,7 @@ const AdminPanel = ({ onLogout, user }) => {
 
     const handleDeleteQuiz = async (id) => {
         if (!confirm("⚠️ UWAGA: Usunięcie testu spowoduje usunięcie wszystkich wyników uczniów przypisanych do tego testu. Kontynuować?")) return;
-        const res = await fetch(`https://backend-webapp.michniedz.workers.dev/api/admin/quizzes?id=${id}`, { method: 'DELETE' });
+        const res = await apiFetch(`/api/admin/quizzes?id=${id}`, { method: 'DELETE' });
         if ((await res.json()).success) {
             fetchQuizzes();
             if (selectedQuizId === id) setSelectedQuizId(null);
@@ -173,18 +175,18 @@ const AdminPanel = ({ onLogout, user }) => {
 
     const handleDeleteCourse = async (id) => {
         if (!confirm("Czy na pewno chcesz usunąć kurs?")) return;
-        const res = await fetch(`https://backend-webapp.michniedz.workers.dev/api/admin/courses?id=${id}`, { method: 'DELETE' });
+        const res = await apiFetch(`/api/admin/courses?id=${id}`, { method: 'DELETE' });
         if ((await res.json()).success) { fetchCourses(); setMsg({ text: 'Usunięto.', type: 'success' }); }
     };
 
     const handleDeleteUser = async (id) => {
         if (!confirm("Czy na pewno chcesz usunąć tego użytkownika i całą jego historię nauki?")) return;
-        const res = await fetch(`https://backend-webapp.michniedz.workers.dev/api/admin/users?id=${id}`, { method: 'DELETE' });
+        const res = await apiFetch(`/api/admin/users?id=${id}`, { method: 'DELETE' });
         if ((await res.json()).success) { fetchUsers(); setMsg({ text: 'Użytkownik usunięty.', type: 'success' }); }
     };
 
     const handleSetStatus = async (id, newStatus) => {
-        const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/admin/users/status', {
+        const res = await apiFetch('/api/admin/users/status', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id, status: newStatus })
@@ -193,7 +195,7 @@ const AdminPanel = ({ onLogout, user }) => {
     };
 
     const handleAddQuestionToQuiz = async (qId) => {
-        const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/admin/quizzes/add-question', {
+        const res = await apiFetch('/api/admin/quizzes/add-question', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ quiz_id: selectedQuizId, question_id: qId })
@@ -202,7 +204,7 @@ const AdminPanel = ({ onLogout, user }) => {
     };
 
     const handleUpdateQuestion = async (q) => {
-        const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/admin/quiz', {
+        const res = await apiFetch('/api/admin/quiz', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(q)
@@ -217,7 +219,7 @@ const AdminPanel = ({ onLogout, user }) => {
     const handleAcceptReset = async (userId, quizId) => {
         if(!confirm("Czy na pewno chcesz pozwolić temu uczniowi na ponowne rozwiązanie testu? Stary wynik zostanie usunięty.")) return;
 
-        const res = await fetch(`https://backend-webapp.michniedz.workers.dev/api/admin/quiz/reset?user_id=${userId}&quiz_id=${quizId}`, {
+        const res = await apiFetch(`/api/admin/quiz/reset?user_id=${userId}&quiz_id=${quizId}`, {
             method: 'DELETE'
         });
 
@@ -234,7 +236,7 @@ const AdminPanel = ({ onLogout, user }) => {
 
     const handleToggleQuizStatus = async (quiz) => {
         const newStatus = quiz.is_active === 1 ? 0 : 1;
-        const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/admin/quizzes/status', {
+        const res = await apiFetch('/api/admin/quizzes/status', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: quiz.id, is_active: newStatus })
@@ -278,7 +280,7 @@ const AdminPanel = ({ onLogout, user }) => {
             if (parsedQuestions.length === 0) return alert("Nie znaleziono poprawnych danych w pliku.");
 
             try {
-                const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/admin/questions/import', {
+                const res = await apiFetch('/api/admin/questions/import', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ quiz_id: quizId, questions: parsedQuestions })
@@ -302,7 +304,7 @@ const AdminPanel = ({ onLogout, user }) => {
     const handleRemoveQuestionFromQuiz = async (qId) => {
         if (!confirm("Czy na pewno chcesz usunąć to pytanie z tego arkusza? (Pytanie pozostanie w ogólnej bazie)")) return;
 
-        const res = await fetch(`https://backend-webapp.michniedz.workers.dev/api/admin/quizzes/remove-question?quiz_id=${selectedQuizId}&question_id=${qId}`, {
+        const res = await apiFetch(`/api/admin/quizzes/remove-question?quiz_id=${selectedQuizId}&question_id=${qId}`, {
             method: 'DELETE'
         });
 
@@ -313,7 +315,7 @@ const AdminPanel = ({ onLogout, user }) => {
     };
 
     const handleAddQuizToCourse = async (courseId, quizId) => {
-        const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/admin/courses/add-quiz', {
+        const res = await apiFetch('/api/admin/courses/add-quiz', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ course_id: courseId, quiz_id: quizId })
@@ -340,7 +342,7 @@ const AdminPanel = ({ onLogout, user }) => {
         }
 
         try {
-            const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/admin/materials', {
+            const res = await apiFetch('/api/admin/materials', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(materialData)
@@ -458,7 +460,7 @@ const AdminPanel = ({ onLogout, user }) => {
                             {showQuizCreator && (
                                 <form className="admin-form" onSubmit={async (e) => {
                                     e.preventDefault();
-                                    const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/admin/quizzes', {
+                                    const res = await apiFetch('/api/admin/quizzes', {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({
@@ -593,7 +595,7 @@ const AdminPanel = ({ onLogout, user }) => {
                             <h3>➕ Dodaj Pytanie do Bazy</h3>
                             <form className="admin-form" onSubmit={async (e) => {
                                 e.preventDefault();
-                                const res = await fetch('https://backend-webapp.michniedz.workers.dev/api/admin/quiz', {
+                                const res = await apiFetch('/api/admin/quiz', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify(newQuiz)
@@ -731,7 +733,7 @@ const AdminPanel = ({ onLogout, user }) => {
                                                     <td>
                                                         <button className="btn-edit" onClick={() => setEditingQuestion({...q})}>Edytuj</button>
                                                         <button className="btn-save" disabled={!selectedQuizId} onClick={() => handleAddQuestionToQuiz(q.id)}>➕</button>
-                                                        <button className="btn-delete" onClick={async () => {if(confirm("Usuń?")){await fetch(`https://backend-webapp.michniedz.workers.dev/api/admin/quiz?id=${q.id}`,{method:'DELETE'});fetchQuestions();}}}>Usuń</button>
+                                                        <button className="btn-delete" onClick={async () => {if(confirm("Usuń?")){await apiFetch(`/api/admin/quiz?id=${q.id}`,{method:'DELETE'});fetchQuestions();}}}>Usuń</button>
                                                     </td>
                                                 </>
                                             )}
@@ -909,7 +911,7 @@ const AdminPanel = ({ onLogout, user }) => {
                                     <div
                                         className="html-render"
                                         style={{ background: 'white', color: 'black', padding: '20px', borderRadius: '8px' }}
-                                        dangerouslySetInnerHTML={{ __html: previewData.content_value }}
+                                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewData.content_value) }}
                                     />
                                 )}
                             </div>

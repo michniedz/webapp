@@ -38,7 +38,7 @@ const LoginPage = ({ onLoginSuccess, onBack }) => {
                     alert("Konto utworzone! Poczekaj na akceptację administratora.");
                     setIsRegister(false);
                 } else {
-                    onLoginSuccess(data.user);
+                    onLoginSuccess(data.user, data.token);
                 }
             } else {
                 setError(data.message || data.error || "Wystąpił błąd.");
