@@ -54,7 +54,7 @@ export async function apiFetch(path, options = {}) {
     const headers = { ...(options.headers || {}) };
 
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    if (options.body && !headers['Content-Type']) {
+    if (options.body && typeof options.body === 'string' && !headers['Content-Type']) {
         headers['Content-Type'] = 'application/json';
     }
 

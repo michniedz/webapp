@@ -4,6 +4,7 @@ import LoginPage from './views/LoginPage';
 import StudentPanel from './views/StudentPanel';
 import AdminPanel from './views/AdminPanel';
 import { apiFetch, getToken, setToken, clearSession, getStoredUser, storeUser } from './lib/api';
+import ToastContainer from './components/ToastContainer';
 import './App.css';
 
 function App() {
@@ -71,20 +72,26 @@ function App() {
         return null; // krótka przerwa na walidację sesji
     }
 
+    let content;
     if (user) {
-        return user.role === 'admin'
+        content = user.role === 'admin'
             ? <AdminPanel user={user} onLogout={handleLogout} />
             : <StudentPanel user={user} onUpdateUser={updateUserData} onLogout={handleLogout} />;
-    }
-
-    if (isLoggingIn) {
-        return <LoginPage
+    } else if (isLoggingIn) {
+        content = <LoginPage
             onLoginSuccess={handleLoginSuccess}
             onBack={() => setIsLoggingIn(false)}
         />;
+    } else {
+        content = <LandingPage onLogin={() => setIsLoggingIn(true)} />;
     }
 
-    return <LandingPage onLogin={() => setIsLoggingIn(true)} />;
+    return (
+        <>
+            {content}
+            <ToastContainer />
+        </>
+    );
 }
 
 export default App;

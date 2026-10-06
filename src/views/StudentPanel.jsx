@@ -3,6 +3,8 @@ import Sidebar from '../components/Sidebar';
 import StudentQuiz from "./StudentQuiz.jsx";
 import DOMPurify from 'dompurify';
 import { apiFetch } from '../lib/api';
+import ConfirmModal from '../components/ConfirmModal';
+import { toast } from '../lib/toast';
 
 const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
     const fileInputRef = useRef(null);
@@ -32,6 +34,7 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
     });
 
     const [loginHistory, setLoginHistory] = useState([]);
+    const [confirmOpen, setConfirmOpen] = useState(false);
 
     const formatGoogleDriveLink = (url) => {
         if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
@@ -42,38 +45,52 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
     };
 
     const handleRemoveAvatar = () => {
-        if (confirm("Czy na pewno chcesz usunąć swoje zdjęcie profilowe?")) {
-            setProfileData({ ...profileData, avatar: '' }); // Czyścimy podgląd
-            if (fileInputRef.current) {
-                fileInputRef.current.value = ""; // Czyścimy input pliku, aby można było wgrać to samo zdjęcie ponownie
-            }
+        setConfirmOpen(true);
+    };
+
+    const confirmRemoveAvatar = () => {
+        setConfirmOpen(false);
+        setProfileData({ ...profileData, avatar: '' }); // Czyścimy podgląd
+        if (fileInputRef.current) {
+            fileInputRef.current.value = ""; // Czyścimy input pliku, aby można było wgrać to samo zdjęcie ponownie
         }
     };
 
-    const handleAvatarChange = (e) => {
+    const handleAvatarChange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
         // 1. Sprawdzenie rozszerzenia (MIME type)
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         if (!allowedTypes.includes(file.type)) {
-            alert("Niepoprawny format pliku! Wybierz obraz JPG, PNG lub GIF.");
+            toast("Niepoprawny format pliku! Wybierz obraz JPG, PNG, GIF lub WebP.", "error");
             e.target.value = "";
             return;
         }
 
         // 2. Sprawdzenie wielkości (100 KB = 102400 bajtów)
         if (file.size > 102400) {
-            alert("Plik jest zbyt duży! Maksymalna wielkość to 100 KB. Twój plik ma: " + Math.round(file.size / 1024) + " KB");
+            toast("Plik jest zbyt duży! Maksymalna wielkość to 100 KB. Twój plik ma: " + Math.round(file.size / 1024) + " KB", "error");
             e.target.value = "";
             return;
         }
 
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setProfileData({ ...profileData, avatar: reader.result });
-        };
-        reader.readAsDataURL(file);
+        // 3. Wysyłka do R2 — przechowujemy URL zamiast base64
+        try {
+            const form = new FormData();
+            form.append('file', file);
+            const res = await apiFetch('/api/avatar', { method: 'POST', body: form });
+            const data = await res.json();
+            if (data.success) {
+                setProfileData({ ...profileData, avatar: data.url });
+            } else {
+                toast(data.error || "Błąd przesyłania awatara.", "error");
+                e.target.value = "";
+            }
+        } catch {
+            toast("Błąd połączenia podczas przesyłania awatara.", "error");
+            e.target.value = "";
+        }
     };
 
     const handleUpdateProfile = async (e) => {
@@ -92,7 +109,7 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
                 avatar: profileData.avatar
             });
 
-            alert("Dane i awatar zostały zaktualizowane!");
+            toast("Dane i awatar zostały zaktualizowane!", "success");
             setProfileData({...profileData, password: ''});
         }
     };
@@ -169,7 +186,7 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
 
     const handleEnroll = async (e) => {
         e.preventDefault();
-        if (!enrollData.courseId) return alert("Wybierz kurs z listy!");
+        if (!enrollData.courseId) return toast("Wybierz kurs z listy!", "warning");
 
         const res = await apiFetch('/api/enroll', {
             method: 'POST',
@@ -180,11 +197,11 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
         });
         const data = await res.json();
         if (data.success) {
-            alert("Zapisano pomyślnie!");
+            toast("Zapisano pomyślnie!", "success");
             fetchMyCourses();
             setEnrollData({ courseId: '', key: '' });
         } else {
-            alert(data.message || "Błąd zapisu");
+            toast(data.message || "Błąd zapisu", "error");
         }
     };
 
@@ -423,8 +440,8 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
 
                                 <section className="admin-form-section" style={{ maxWidth: '100%', marginBottom: '2rem' }}>
                                     <h3>➕ Zapisz się na nowy kurs</h3>
-                                    <form onSubmit={handleEnroll} className="admin-form" style={{ flexDirection: 'row', alignItems: 'flex-end', gap: '1rem' }}>
-                                        <div style={{ flex: 2 }}>
+                                    <form onSubmit={handleEnroll} className="admin-form enroll-form">
+                                        <div className="enroll-field enroll-field-wide">
                                             <label>Wybierz kurs</label>
                                             <select
                                                 value={enrollData.courseId}
@@ -432,12 +449,14 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
                                                 required
                                             >
                                                 <option value="">-- Dostępne kursy --</option>
-                                                {courses.filter(c => !c.enrolled).map(c => (
-                                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                                {courses.map(c => (
+                                                    <option key={c.id} value={c.id} disabled={c.enrolled}>
+                                                        {c.name}{c.enrolled ? ' (zapisano)' : ''}
+                                                    </option>
                                                 ))}
                                             </select>
                                         </div>
-                                        <div style={{ flex: 1 }}>
+                                        <div className="enroll-field">
                                             <label>Klucz dostępu</label>
                                             <input
                                                 type="text"
@@ -447,7 +466,7 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
                                                 required
                                             />
                                         </div>
-                                        <button type="submit" className="login-submit-btn" style={{ width: 'auto', padding: '0.8rem 2rem' }}>Zapisz się</button>
+                                        <button type="submit" className="login-submit-btn enroll-submit">Zapisz się</button>
                                     </form>
                                 </section>
 
@@ -520,7 +539,7 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
                                                                 setIsQuizMode(true);
                                                             }}
                                                         >
-                                                            {result ? "Spróbuj ponownie" : "Rozpocznij test"}
+                                                            {result ? "Podgląd wyniku" : "Rozpocznij test"}
                                                         </button>
                                                     </div>
                                                 );
@@ -546,6 +565,15 @@ const StudentPanel = ({ onLogout, user, onUpdateUser }) => {
                     </div>
                 )}
             </main>
+
+            <ConfirmModal
+                open={confirmOpen}
+                title="Usunąć zdjęcie profilowe?"
+                message="Czy na pewno chcesz usunąć swoje zdjęcie profilowe?"
+                confirmLabel="Usuń"
+                onConfirm={confirmRemoveAvatar}
+                onCancel={() => setConfirmOpen(false)}
+            />
         </div>
     );
 };

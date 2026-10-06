@@ -1,4 +1,5 @@
 import React from 'react';
+import ThemeToggle from './ThemeToggle';
 
 const Navbar = ({ onLogin }) => {
     return (
@@ -9,6 +10,8 @@ const Navbar = ({ onLogin }) => {
             <ul className="nav-links">
                 <li><a href="#home">Start</a></li>
                 <li><a href="#kursy">Kursy</a></li>
+                <li><a href="#o-projekcie">O projekcie</a></li>
+                <li><ThemeToggle /></li>
                 <li>
                     <button className="login-btn" onClick={onLogin}>
                         Zaloguj się

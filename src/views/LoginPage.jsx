@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from '../lib/toast';
 
 const LoginPage = ({ onLoginSuccess, onBack }) => {
     const [isRegister, setIsRegister] = useState(false);
@@ -35,7 +36,7 @@ const LoginPage = ({ onLoginSuccess, onBack }) => {
 
             if (res.ok && data.success) {
                 if (isRegister) {
-                    alert("Konto utworzone! Poczekaj na akceptację administratora.");
+                    toast("Konto utworzone! Poczekaj na akceptację administratora.", "success");
                     setIsRegister(false);
                 } else {
                     onLoginSuccess(data.user, data.token);

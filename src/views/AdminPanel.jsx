@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import DOMPurify from 'dompurify';
+import ConfirmModal from '../components/ConfirmModal';
+import R2ImagePicker from '../components/R2ImagePicker';
+import Skeleton from '../components/Skeleton';
 import { apiFetch } from '../lib/api';
+import { toast } from '../lib/toast';
 
 const AdminPanel = ({ onLogout, user }) => {
     // --- STANY GŁÓWNE ---
@@ -12,11 +16,15 @@ const AdminPanel = ({ onLogout, user }) => {
     // --- STANY DLA KURSÓW ---
     const [courses, setCourses] = useState([]);
     const [editingCourse, setEditingCourse] = useState(null);
+    const [showCourseCreator, setShowCourseCreator] = useState(false);
 
     // --- STANY DLA UŻYTKOWNIKÓW ---
     const [users, setUsers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [editingUser, setEditingUser] = useState(null);
+    const [userFilterStatus, setUserFilterStatus] = useState('ALL');
+    const [userFilterRole, setUserFilterRole] = useState('ALL');
+    const [userSort, setUserSort] = useState({ field: 'id', dir: 'asc' });
 
     // --- STANY DLA QUIZÓW ---
     const [quizzes, setQuizzes] = useState([]);
@@ -35,16 +43,88 @@ const AdminPanel = ({ onLogout, user }) => {
 
     // -- STAN WYNIKI
     const [allResults, setAllResults] = useState([]);
+    const [resultFilterStatus, setResultFilterStatus] = useState('ALL');
+    const [resultFilterQuiz, setResultFilterQuiz] = useState('ALL');
+    const [resultFilterCategory, setResultFilterCategory] = useState('ALL');
+    const [resultSort, setResultSort] = useState({ field: 'date', dir: 'desc' });
 
     const [allMaterials, setAllMaterials] = useState([]);
-    const [materialFilter, setMaterialFilter] = useState('ALL');
+    const [materialCourseFilter, setMaterialCourseFilter] = useState('ALL');
+    const [materialSearch, setMaterialSearch] = useState('');
 
     const [previewData, setPreviewData] = useState(null);
 
-    const fetchAllMaterials = async () => {
-        const res = await apiFetch('/api/materials');
-        const data = await res.json();
-        if (data.success) setAllMaterials(data.data);
+    // --- STANY PAGINACJI ---
+    const [usersPage, setUsersPage] = useState(1);
+    const [usersPagination, setUsersPagination] = useState(null);
+    const [questionsPage, setQuestionsPage] = useState(1);
+    const [questionsPagination, setQuestionsPagination] = useState(null);
+    const [resultsPage, setResultsPage] = useState(1);
+    const [resultsPagination, setResultsPagination] = useState(null);
+    const [materialsPage, setMaterialsPage] = useState(1);
+    const [materialsPagination, setMaterialsPagination] = useState(null);
+
+    // Modal potwierdzenia (zamiast natywnego confirm)
+    const [confirmState, setConfirmState] = useState(null);
+    const openConfirm = (title, message, onConfirm, confirmLabel = 'Potwierdź') =>
+        setConfirmState({ title, message, onConfirm, confirmLabel });
+    const closeConfirm = () => setConfirmState(null);
+
+    // Flagi ładowania tabel
+    const [loadingUsers, setLoadingUsers] = useState(false);
+    const [loadingQuestions, setLoadingQuestions] = useState(false);
+    const [loadingResults, setLoadingResults] = useState(false);
+    const [loadingCourses, setLoadingCourses] = useState(false);
+    const [loadingMaterials, setLoadingMaterials] = useState(false);
+
+    // Wybór obrazu z R2 (do pola image_url)
+    const [r2PickerOpen, setR2PickerOpen] = useState(false);
+    const [r2PickerTarget, setR2PickerTarget] = useState('new');
+
+    const handleR2Select = (url) => {
+        if (r2PickerTarget === 'edit' && editingQuestion) {
+            setEditingQuestion({ ...editingQuestion, image_url: url });
+        } else {
+            setNewQuiz({ ...newQuiz, image_url: url });
+        }
+    };
+
+    // Edycja limitu czasu testu
+    const [editingTimeQuizId, setEditingTimeQuizId] = useState(null);
+    const [editingTimeValue, setEditingTimeValue] = useState('');
+
+    const handleUpdateQuizTime = async (id) => {
+        const minutes = parseInt(editingTimeValue, 10);
+        if (!Number.isFinite(minutes) || minutes < 1) {
+            toast("Podaj poprawną liczbę minut.", "warning");
+            return;
+        }
+        const res = await apiFetch('/api/admin/quizzes/time', {
+            method: 'PUT',
+            body: JSON.stringify({ id, time_limit_minutes: minutes })
+        });
+        if ((await res.json()).success) {
+            setEditingTimeQuizId(null);
+            fetchQuizzes();
+            toast("Czas testu zaktualizowany.", "success");
+        }
+    };
+
+    const fetchAllMaterials = async (page = materialsPage) => {
+        setLoadingMaterials(true);
+        try {
+            const params = new URLSearchParams({ page: String(page), limit: '50' });
+            if (materialSearch) params.set('search', materialSearch);
+            if (materialCourseFilter !== 'ALL') params.set('course', materialCourseFilter);
+            const res = await apiFetch(`/api/materials?${params.toString()}`);
+            const data = await res.json();
+            if (data.success) {
+                setAllMaterials(data.data);
+                setMaterialsPagination(data.pagination);
+            }
+        } finally {
+            setLoadingMaterials(false);
+        }
     };
 
     const getEmbedUrl = (url) => {
@@ -63,21 +143,51 @@ const AdminPanel = ({ onLogout, user }) => {
     };
 
     const fetchCourses = async () => {
-        const res = await apiFetch('/api/admin/courses');
-        const data = await res.json();
-        if (data.success) setCourses(data.data);
+        setLoadingCourses(true);
+        try {
+            const res = await apiFetch('/api/admin/courses');
+            const data = await res.json();
+            if (data.success) setCourses(data.data);
+        } finally {
+            setLoadingCourses(false);
+        }
     };
 
-    const fetchUsers = async () => {
-        const res = await apiFetch('/api/admin/users');
-        const data = await res.json();
-        if (data.success) setUsers(data.data);
+    const fetchUsers = async (page = usersPage) => {
+        setLoadingUsers(true);
+        try {
+            const params = new URLSearchParams({ page: String(page), limit: '50' });
+            if (searchTerm) params.set('search', searchTerm);
+            if (userFilterStatus !== 'ALL') params.set('status', userFilterStatus);
+            if (userFilterRole !== 'ALL') params.set('role', userFilterRole);
+            params.set('sort', userSort.field);
+            params.set('dir', userSort.dir);
+            const res = await apiFetch(`/api/admin/users?${params.toString()}`);
+            const data = await res.json();
+            if (data.success) {
+                setUsers(data.data);
+                setUsersPagination(data.pagination);
+            }
+        } finally {
+            setLoadingUsers(false);
+        }
     };
 
-    const fetchQuestions = async () => {
-        const res = await apiFetch('/api/admin/quiz');
-        const data = await res.json();
-        if (data.success) setQuestions(data.data);
+    const fetchQuestions = async (page = questionsPage) => {
+        setLoadingQuestions(true);
+        try {
+            const params = new URLSearchParams({ page: String(page), limit: '50' });
+            if (searchTerm) params.set('search', searchTerm);
+            if (quizFilter !== 'ALL') params.set('category', quizFilter);
+            const res = await apiFetch(`/api/admin/quiz?${params.toString()}`);
+            const data = await res.json();
+            if (data.success) {
+                setQuestions(data.data);
+                setQuestionsPagination(data.pagination);
+            }
+        } finally {
+            setLoadingQuestions(false);
+        }
     };
 
     const fetchQuizzes = async () => {
@@ -85,13 +195,26 @@ const AdminPanel = ({ onLogout, user }) => {
         const data = await res.json();
         if (data.success) setQuizzes(data.data);
     };
-    const fetchAllResults = async () => {
+    const fetchAllResults = async (page = resultsPage) => {
+        setLoadingResults(true);
         try {
-            const res = await apiFetch('/api/admin/results');
+            const params = new URLSearchParams({ page: String(page), limit: '50' });
+            if (searchTerm) params.set('search', searchTerm);
+            if (resultFilterStatus !== 'ALL') params.set('status', resultFilterStatus);
+            if (resultFilterQuiz !== 'ALL') params.set('quiz_id', resultFilterQuiz);
+            if (resultFilterCategory !== 'ALL') params.set('category', resultFilterCategory);
+            params.set('sort', resultSort.field);
+            params.set('dir', resultSort.dir);
+            const res = await apiFetch(`/api/admin/results?${params.toString()}`);
             const data = await res.json();
-            if (data.success) setAllResults(data.data);
+            if (data.success) {
+                setAllResults(data.data);
+                setResultsPagination(data.pagination);
+            }
         } catch (err) {
             console.error("Błąd pobierania wyników:", err);
+        } finally {
+            setLoadingResults(false);
         }
     };
 
@@ -113,19 +236,34 @@ const AdminPanel = ({ onLogout, user }) => {
     // --- OBSŁUGA ZMIANY ZAKŁADEK ---
     useEffect(() => {
         setSearchTerm('');
+        setUsersPage(1);
+        setQuestionsPage(1);
+        setResultsPage(1);
+        setMaterialsPage(1);
         if (activeTab === 'dashboard') fetchStats();
         if (activeTab === 'courses') fetchCourses();
-        if (activeTab === 'users') fetchUsers();
-        if (activeTab === 'results') fetchAllResults();
+        if (activeTab === 'users') fetchUsers(1);
+        if (activeTab === 'results') { fetchAllResults(1); fetchQuizzes(); }
         if (activeTab === 'quiz') {
-            fetchQuestions();
+            fetchQuestions(1);
             fetchQuizzes();
         }
         if (activeTab === 'materials') {
-            fetchAllMaterials();
+            fetchAllMaterials(1);
             fetchCourses(); // potrzebne do listy rozwijanej kursów
         }
     }, [activeTab]);
+
+    // --- REFETCH PRZY ZMIANIE WYSZUKIWANIA/FILTRÓW/SORTOWANIA (debounce) ---
+    useEffect(() => {
+        const t = setTimeout(() => {
+            if (activeTab === 'users') { setUsersPage(1); fetchUsers(1); }
+            if (activeTab === 'results') { setResultsPage(1); fetchAllResults(1); }
+            if (activeTab === 'quiz') { setQuestionsPage(1); fetchQuestions(1); }
+            if (activeTab === 'materials') { setMaterialsPage(1); fetchAllMaterials(1); }
+        }, 300);
+        return () => clearTimeout(t);
+    }, [searchTerm, userFilterStatus, userFilterRole, userSort, resultFilterStatus, resultFilterQuiz, resultFilterCategory, resultSort, quizFilter, materialSearch, materialCourseFilter]);
 
     const handleShowPreview = (e) => {
         const form = e.target.closest('form');
@@ -138,15 +276,14 @@ const AdminPanel = ({ onLogout, user }) => {
         });
     };
 
-    const handleDeleteMaterial = async (id) => {
-        if (!confirm("Czy na pewno chcesz usunąć ten materiał?")) return;
-        const res = await apiFetch(`/api/admin/materials?id=${id}`, {
-            method: 'DELETE'
-        });
-        if ((await res.json()).success) {
-            setMsg({ text: 'Materiał usunięty.', type: 'success' });
-            fetchAllMaterials();
-        }
+    const handleDeleteMaterial = (id) => {
+        openConfirm('Usuń materiał', 'Czy na pewno chcesz usunąć ten materiał?', async () => {
+            const res = await apiFetch(`/api/admin/materials?id=${id}`, { method: 'DELETE' });
+            if ((await res.json()).success) {
+                setMsg({ text: 'Materiał usunięty.', type: 'success' });
+                fetchAllMaterials();
+            }
+        }, 'Usuń');
     };
 
     // --- HANDLERY AKCJI ---
@@ -163,26 +300,48 @@ const AdminPanel = ({ onLogout, user }) => {
         }
     };
 
-    const handleDeleteQuiz = async (id) => {
-        if (!confirm("⚠️ UWAGA: Usunięcie testu spowoduje usunięcie wszystkich wyników uczniów przypisanych do tego testu. Kontynuować?")) return;
-        const res = await apiFetch(`/api/admin/quizzes?id=${id}`, { method: 'DELETE' });
-        if ((await res.json()).success) {
-            fetchQuizzes();
-            if (selectedQuizId === id) setSelectedQuizId(null);
-            setMsg({ text: 'Test został trwale usunięty.', type: 'success' });
+    const handleAddCourse = async (e) => {
+        e.preventDefault();
+        const name = e.target.name.value.trim();
+        const enrollment_key = e.target.enrollment_key.value.trim();
+        const res = await apiFetch('/api/admin/courses', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, enrollment_key })
+        });
+        const data = await res.json();
+        if (data.success) {
+            setMsg({ text: 'Kurs został dodany!', type: 'success' });
+            e.target.reset();
+            fetchCourses();
+        } else {
+            setMsg({ text: 'Błąd: ' + (data.error || data.message || 'nie udało się dodać kursu.'), type: 'error' });
         }
     };
 
-    const handleDeleteCourse = async (id) => {
-        if (!confirm("Czy na pewno chcesz usunąć kurs?")) return;
-        const res = await apiFetch(`/api/admin/courses?id=${id}`, { method: 'DELETE' });
-        if ((await res.json()).success) { fetchCourses(); setMsg({ text: 'Usunięto.', type: 'success' }); }
+    const handleDeleteQuiz = (id) => {
+        openConfirm('Usuń test', '⚠️ UWAGA: Usunięcie testu spowoduje usunięcie wszystkich wyników uczniów przypisanych do tego testu. Kontynuować?', async () => {
+            const res = await apiFetch(`/api/admin/quizzes?id=${id}`, { method: 'DELETE' });
+            if ((await res.json()).success) {
+                fetchQuizzes();
+                if (selectedQuizId === id) setSelectedQuizId(null);
+                setMsg({ text: 'Test został trwale usunięty.', type: 'success' });
+            }
+        }, 'Usuń');
     };
 
-    const handleDeleteUser = async (id) => {
-        if (!confirm("Czy na pewno chcesz usunąć tego użytkownika i całą jego historię nauki?")) return;
-        const res = await apiFetch(`/api/admin/users?id=${id}`, { method: 'DELETE' });
-        if ((await res.json()).success) { fetchUsers(); setMsg({ text: 'Użytkownik usunięty.', type: 'success' }); }
+    const handleDeleteCourse = (id) => {
+        openConfirm('Usuń kurs', 'Czy na pewno chcesz usunąć kurs?', async () => {
+            const res = await apiFetch(`/api/admin/courses?id=${id}`, { method: 'DELETE' });
+            if ((await res.json()).success) { fetchCourses(); setMsg({ text: 'Usunięto.', type: 'success' }); }
+        }, 'Usuń');
+    };
+
+    const handleDeleteUser = (id) => {
+        openConfirm('Usuń użytkownika', 'Czy na pewno chcesz usunąć tego użytkownika i całą jego historię nauki?', async () => {
+            const res = await apiFetch(`/api/admin/users?id=${id}`, { method: 'DELETE' });
+            if ((await res.json()).success) { fetchUsers(); setMsg({ text: 'Użytkownik usunięty.', type: 'success' }); }
+        }, 'Usuń');
     };
 
     const handleSetStatus = async (id, newStatus) => {
@@ -194,13 +353,30 @@ const AdminPanel = ({ onLogout, user }) => {
         if ((await res.json()).success) { fetchUsers(); setMsg({ text: 'Status zmieniony!', type: 'success' }); }
     };
 
+    const handleUpdateUser = async () => {
+        const { id, first_name, last_name, email, role, status, password } = editingUser;
+        const res = await apiFetch('/api/admin/users', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, first_name, last_name, email, role, status, password })
+        });
+        const data = await res.json();
+        if (data.success) {
+            setEditingUser(null);
+            fetchUsers();
+            setMsg({ text: 'Konto użytkownika zaktualizowane!', type: 'success' });
+        } else {
+            setMsg({ text: 'Błąd: ' + (data.error || data.message || 'nie udało się zapisać.'), type: 'error' });
+        }
+    };
+
     const handleAddQuestionToQuiz = async (qId) => {
         const res = await apiFetch('/api/admin/quizzes/add-question', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ quiz_id: selectedQuizId, question_id: qId })
         });
-        if ((await res.json()).success) { alert("Dodano do testu!"); }
+        if ((await res.json()).success) { toast("Dodano do testu!", "success"); }
     };
 
     const handleUpdateQuestion = async (q) => {
@@ -216,23 +392,43 @@ const AdminPanel = ({ onLogout, user }) => {
         }
     };
 
-    const handleAcceptReset = async (userId, quizId) => {
-        if(!confirm("Czy na pewno chcesz pozwolić temu uczniowi na ponowne rozwiązanie testu? Stary wynik zostanie usunięty.")) return;
-
-        const res = await apiFetch(`/api/admin/quiz/reset?user_id=${userId}&quiz_id=${quizId}`, {
-            method: 'DELETE'
-        });
-
-        if ((await res.json()).success) {
-            setMsg({ text: 'Test został zresetowany.', type: 'success' });
-            fetchAllResults(); // Odśwież listę wyników
-        }
+    const handleAcceptReset = (userId, quizId) => {
+        openConfirm('Zezwól na poprawę', 'Czy na pewno chcesz pozwolić temu uczniowi na ponowne rozwiązanie testu? Stary wynik zostanie usunięty.', async () => {
+            const res = await apiFetch(`/api/admin/quiz/reset?user_id=${userId}&quiz_id=${quizId}`, { method: 'DELETE' });
+            if ((await res.json()).success) {
+                setMsg({ text: 'Test został zresetowany.', type: 'success' });
+                fetchAllResults(); // Odśwież listę wyników
+            }
+        }, 'Zezwól');
     };
 
-    const filteredUsers = users.filter(u =>
-        `${u.first_name} ${u.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const handleUserSort = (field) => {
+        setUserSort(prev => prev.field === field
+            ? { field, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+            : { field, dir: 'asc' });
+    };
+
+    // Kategorie dostępne w filtrze wyników (z listy wszystkich testów)
+    const resultCategories = [...new Set(quizzes.map(q => q.category).filter(Boolean))].sort();
+
+    // Wspólny komponent paginacji
+    const renderPagination = (pagination, onPageChange) => {
+        if (!pagination) return null;
+        const { page, total_pages, total } = pagination;
+        return (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', marginTop: '1rem', fontSize: '0.85rem' }}>
+                <span style={{ color: 'var(--text-dim)' }}>{total} wyników · strona {page} z {total_pages}</span>
+                <button className="btn-edit" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>← Poprzednia</button>
+                <button className="btn-edit" disabled={page >= total_pages} onClick={() => onPageChange(page + 1)}>Następna →</button>
+            </div>
+        );
+    };
+
+    const handleResultSort = (field) => {
+        setResultSort(prev => prev.field === field
+            ? { field, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+            : { field, dir: 'asc' });
+    };
 
     const handleToggleQuizStatus = async (quiz) => {
         const newStatus = quiz.is_active === 1 ? 0 : 1;
@@ -249,7 +445,7 @@ const AdminPanel = ({ onLogout, user }) => {
 
     const handleCSVImport = (e, quizId) => {
         const file = e.target.files[0];
-        if (!file || !quizId) return alert("Wybierz plik i upewnij się, że arkusz jest wybrany!");
+        if (!file || !quizId) return toast("Wybierz plik i upewnij się, że arkusz jest wybrany!", "warning");
 
         const reader = new FileReader();
         reader.onload = async (event) => {
@@ -277,7 +473,7 @@ const AdminPanel = ({ onLogout, user }) => {
                 };
             }).filter(q => q !== null);
 
-            if (parsedQuestions.length === 0) return alert("Nie znaleziono poprawnych danych w pliku.");
+            if (parsedQuestions.length === 0) return toast("Nie znaleziono poprawnych danych w pliku.", "warning");
 
             try {
                 const res = await apiFetch('/api/admin/questions/import', {
@@ -288,30 +484,34 @@ const AdminPanel = ({ onLogout, user }) => {
 
                 const data = await res.json();
                 if (data.success) {
-                    alert(`Sukces! ${data.message}`);
+                    toast(`Sukces! ${data.message}`, "success");
                     fetchQuestions(); // Odśwież bazę pytań
                 } else {
-                    alert("Błąd serwera: " + data.message);
+                    toast("Błąd serwera: " + data.message, "error");
                 }
             } catch (err) {
-                alert("Błąd połączenia podczas importu.");
+                toast("Błąd połączenia podczas importu.", "error");
             }
         };
         reader.readAsText(file, "UTF-8"); // Wymuszamy kodowanie UTF-8
     };
 
     // Funkcja usuwająca powiązanie
-    const handleRemoveQuestionFromQuiz = async (qId) => {
-        if (!confirm("Czy na pewno chcesz usunąć to pytanie z tego arkusza? (Pytanie pozostanie w ogólnej bazie)")) return;
+    const handleRemoveQuestionFromQuiz = (qId) => {
+        openConfirm('Usuń z arkusza', 'Czy na pewno chcesz usunąć to pytanie z tego arkusza? (Pytanie pozostanie w ogólnej bazie)', async () => {
+            const res = await apiFetch(`/api/admin/quizzes/remove-question?quiz_id=${selectedQuizId}&question_id=${qId}`, { method: 'DELETE' });
+            if ((await res.json()).success) {
+                fetchSelectedQuizQuestions(selectedQuizId); // Odśwież listę
+                setMsg({ text: 'Pytanie usunięte z arkusza.', type: 'success' });
+            }
+        }, 'Usuń');
+    };
 
-        const res = await apiFetch(`/api/admin/quizzes/remove-question?quiz_id=${selectedQuizId}&question_id=${qId}`, {
-            method: 'DELETE'
-        });
-
-        if ((await res.json()).success) {
-            fetchSelectedQuizQuestions(selectedQuizId); // Odśwież listę
-            setMsg({ text: 'Pytanie usunięte z arkusza.', type: 'success' });
-        }
+    const handleDeleteQuestion = (qId) => {
+        openConfirm('Usuń pytanie', 'Czy na pewno chcesz usunąć to pytanie z bazy?', async () => {
+            await apiFetch(`/api/admin/quiz?id=${qId}`, { method: 'DELETE' });
+            fetchQuestions();
+        }, 'Usuń');
     };
 
     const handleAddQuizToCourse = async (courseId, quizId) => {
@@ -337,7 +537,7 @@ const AdminPanel = ({ onLogout, user }) => {
         };
 
         if (!materialData.course_id) {
-            alert("Proszę wybrać kurs!");
+            toast("Proszę wybrać kurs!", "warning");
             return;
         }
 
@@ -386,12 +586,40 @@ const AdminPanel = ({ onLogout, user }) => {
 
                 {activeTab === 'courses' && (
                     <section className="admin-form-section">
-                        <h3>Lista Kursów</h3>
+                        <div className="section-header-flex">
+                            <h3>Lista Kursów</h3>
+                            <button className="btn-save" onClick={() => setShowCourseCreator(!showCourseCreator)}>
+                                {showCourseCreator ? 'Anuluj' : '➕ Dodaj kurs'}
+                            </button>
+                        </div>
+
+                        {showCourseCreator && (
+                            <form className="admin-form" onSubmit={handleAddCourse} style={{ marginBottom: '1.5rem' }}>
+                                <div className="quiz-grid">
+                                    <div style={{ flex: 1 }}>
+                                        <label>Nazwa kursu</label>
+                                        <input name="name" placeholder="np. Programowanie aplikacji" required />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <label>Klucz zapisu (hasło dla uczniów)</label>
+                                        <input name="enrollment_key" placeholder="np. kurs2026" required />
+                                    </div>
+                                </div>
+                                <button type="submit" className="login-submit-btn" style={{ width: 'auto', padding: '0.8rem 2rem', marginTop: '1rem' }}>
+                                    Dodaj kurs
+                                </button>
+                            </form>
+                        )}
+
                         <div className="admin-table-container">
                             <table className="admin-table">
                                 <thead><tr><th>ID</th><th>Nazwa</th><th>Hasło</th><th>Akcje</th></tr></thead>
                                 <tbody>
-                                {courses.map(c => (
+                                {loadingCourses ? (
+                                    <tr><td colSpan="4" className="loading-row"><Skeleton width="40%" height={14} style={{ margin: '0 auto' }} /></td></tr>
+                                ) : courses.length === 0 ? (
+                                    <tr><td colSpan="4" className="empty-state">Brak kursów.</td></tr>
+                                ) : courses.map(c => (
                                     <tr key={c.id}>
                                         <td>{c.id}</td>
                                         <td>{editingCourse?.id === c.id ? <input value={editingCourse.name} onChange={e => setEditingCourse({...editingCourse, name: e.target.value})} /> : c.name}</td>
@@ -426,26 +654,93 @@ const AdminPanel = ({ onLogout, user }) => {
                     <section className="admin-form-section">
                         <div className="section-header-flex">
                             <h3>Użytkownicy</h3>
-                            <input className="search-input" placeholder="Szukaj..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                <input className="search-input" placeholder="Szukaj: imię, nazwisko, email..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                                <select className="search-input" value={userFilterStatus} onChange={e => setUserFilterStatus(e.target.value)}>
+                                    <option value="ALL">Wszystkie statusy</option>
+                                    <option value="active">Aktywni</option>
+                                    <option value="pending">Oczekujący</option>
+                                </select>
+                                <select className="search-input" value={userFilterRole} onChange={e => setUserFilterRole(e.target.value)}>
+                                    <option value="ALL">Wszystkie role</option>
+                                    <option value="student">Uczniowie</option>
+                                    <option value="admin">Administratorzy</option>
+                                </select>
+                            </div>
                         </div>
                         <div className="admin-table-container">
                             <table className="admin-table">
-                                <thead><tr><th>ID</th><th>Imię i Nazwisko</th><th>Status</th><th>Akcje</th></tr></thead>
+                                <thead>
+                                <tr>
+                                    <th className="sortable" onClick={() => handleUserSort('id')}>ID {userSort.field === 'id' ? (userSort.dir === 'asc' ? '▲' : '▼') : ''}</th>
+                                    <th className="sortable" onClick={() => handleUserSort('name')}>Imię i Nazwisko {userSort.field === 'name' ? (userSort.dir === 'asc' ? '▲' : '▼') : ''}</th>
+                                    <th className="sortable" onClick={() => handleUserSort('email')}>Email {userSort.field === 'email' ? (userSort.dir === 'asc' ? '▲' : '▼') : ''}</th>
+                                    <th className="sortable" onClick={() => handleUserSort('role')}>Rola {userSort.field === 'role' ? (userSort.dir === 'asc' ? '▲' : '▼') : ''}</th>
+                                    <th className="sortable" onClick={() => handleUserSort('status')}>Status {userSort.field === 'status' ? (userSort.dir === 'asc' ? '▲' : '▼') : ''}</th>
+                                    <th>Akcje</th>
+                                </tr>
+                                </thead>
                                 <tbody>
-                                {filteredUsers.map(u => (
-                                    <tr key={u.id}>
-                                        <td>{u.id}</td>
-                                        <td>{u.first_name} {u.last_name}</td>
-                                        <td><span className={`tag tag-${u.status}`}>{u.status}</span></td>
-                                        <td>
-                                            {u.status === 'pending' && <button className="btn-save" onClick={() => handleSetStatus(u.id, 'active')}>Akceptuj</button>}
-                                            <button className="btn-delete" onClick={() => handleDeleteUser(u.id)}>Usuń</button>
-                                        </td>
-                                    </tr>
+                                {loadingUsers ? (
+                                    <tr><td colSpan="6" className="loading-row"><Skeleton width="40%" height={14} style={{ margin: '0 auto' }} /></td></tr>
+                                ) : users.length === 0 ? (
+                                    <tr><td colSpan="6" className="empty-state">Brak użytkowników.</td></tr>
+                                ) : users.map(u => (
+                                    editingUser?.id === u.id ? (
+                                        <tr key={u.id}>
+                                            <td colSpan="6">
+                                                <div className="edit-question-box">
+                                                    <div className="quiz-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                                                        <div className="form-field-group">
+                                                            <label>Imię</label>
+                                                            <input value={editingUser.first_name || ''} onChange={e => setEditingUser({ ...editingUser, first_name: e.target.value })} />
+                                                        </div>
+                                                        <div className="form-field-group">
+                                                            <label>Nazwisko</label>
+                                                            <input value={editingUser.last_name || ''} onChange={e => setEditingUser({ ...editingUser, last_name: e.target.value })} />
+                                                        </div>
+                                                    </div>
+                                                    <div className="form-field-group">
+                                                        <label>Email</label>
+                                                        <input type="email" value={editingUser.email || ''} onChange={e => setEditingUser({ ...editingUser, email: e.target.value })} />
+                                                    </div>
+                                                    <div className="form-field-group">
+                                                        <label>Rola</label>
+                                                        <select value={editingUser.role || 'student'} onChange={e => setEditingUser({ ...editingUser, role: e.target.value })}>
+                                                            <option value="student">Uczeń</option>
+                                                            <option value="admin">Administrator</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="form-field-group">
+                                                        <label>Nowe hasło (zostaw puste, by nie zmieniać)</label>
+                                                        <input type="password" value={editingUser.password || ''} onChange={e => setEditingUser({ ...editingUser, password: e.target.value })} placeholder="Wpisz nowe hasło..." />
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                                                        <button className="btn-cancel" onClick={() => setEditingUser(null)}>Anuluj</button>
+                                                        <button className="btn-save" onClick={handleUpdateUser}>Zapisz zmiany</button>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        <tr key={u.id}>
+                                            <td>{u.id}</td>
+                                            <td>{u.first_name} {u.last_name}</td>
+                                            <td>{u.email}</td>
+                                            <td><span className={`tag tag-${u.role}`}>{u.role === 'admin' ? 'Administrator' : 'Uczeń'}</span></td>
+                                            <td><span className={`tag tag-${u.status}`}>{u.status === 'active' ? 'Aktywny' : 'Oczekujący'}</span></td>
+                                            <td style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                                                <button className="btn-edit" onClick={() => setEditingUser({ ...u, password: '' })}>Edytuj</button>
+                                                {u.status === 'pending' && <button className="btn-save" onClick={() => handleSetStatus(u.id, 'active')}>Akceptuj</button>}
+                                                <button className="btn-delete" onClick={() => handleDeleteUser(u.id)}>Usuń</button>
+                                            </td>
+                                        </tr>
+                                    )
                                 ))}
                                 </tbody>
                             </table>
                         </div>
+                        {renderPagination(usersPagination, (p) => { setUsersPage(p); fetchUsers(p); })}
 
                     </section>
                 )}
@@ -466,7 +761,8 @@ const AdminPanel = ({ onLogout, user }) => {
                                         body: JSON.stringify({
                                             title: e.target.title.value,
                                             category: e.target.category.value, // Nazwa kursu jako kategoria
-                                            description: ''
+                                            description: '',
+                                            time_limit_minutes: parseInt(e.target.time_limit_minutes.value, 10) || 60
                                         })
                                     });
                                     if ((await res.json()).success) { fetchQuizzes(); setShowQuizCreator(false); }
@@ -480,6 +776,12 @@ const AdminPanel = ({ onLogout, user }) => {
                                             <option key={c.id} value={c.name}>{c.name}</option>
                                         ))}
                                     </select>
+                                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <label>Limit czasu (minuty)</label>
+                                            <input name="time_limit_minutes" type="number" min="1" defaultValue="60" required />
+                                        </div>
+                                    </div>
                                     <button type="submit" className="login-submit-btn">Stwórz arkusz</button>
                                 </form>
                             )}
@@ -491,6 +793,7 @@ const AdminPanel = ({ onLogout, user }) => {
                                     <tr>
                                         <th>Nazwa</th>
                                         <th>Kat.</th>
+                                        <th>Czas</th>
                                         <th>Status</th>
                                         <th>Akcje</th>
                                     </tr>
@@ -500,6 +803,30 @@ const AdminPanel = ({ onLogout, user }) => {
                                         <tr key={qz.id} style={selectedQuizId === qz.id ? {background: 'rgba(99,102,241,0.1)'} : {}}>
                                             <td>{qz.title}</td>
                                             <td>{qz.category}</td>
+                                            <td>
+                                                {editingTimeQuizId === qz.id ? (
+                                                    <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            value={editingTimeValue}
+                                                            onChange={e => setEditingTimeValue(e.target.value)}
+                                                            style={{ width: '70px', padding: '4px 8px' }}
+                                                        />
+                                                        <button className="btn-save" onClick={() => handleUpdateQuizTime(qz.id)}>✓</button>
+                                                        <button className="btn-cancel" onClick={() => setEditingTimeQuizId(null)}>×</button>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ display: 'flex', gap: '5px', alignItems: 'center', whiteSpace: 'nowrap' }}>
+                                                        <span>{qz.time_limit_minutes ?? 60} min</span>
+                                                        <button
+                                                            className="btn-edit"
+                                                            title="Edytuj czas"
+                                                            onClick={() => { setEditingTimeQuizId(qz.id); setEditingTimeValue(qz.time_limit_minutes ?? 60); }}
+                                                        >✎</button>
+                                                    </div>
+                                                )}
+                                            </td>
                                             <td>
                                             <span className={`tag ${qz.is_active ? 'tag-active' : 'tag-pending'}`}>
                                                 {qz.is_active ? 'Widoczny' : 'Ukryty'}
@@ -614,8 +941,16 @@ const AdminPanel = ({ onLogout, user }) => {
                                     placeholder="Link do zdjęcia (np. z R2) - zostaw puste jeśli brak"
                                     value={newQuiz.image_url}
                                     onChange={e => setNewQuiz({...newQuiz, image_url: e.target.value})}
-                                    style={{ marginBottom: '1rem' }}
+                                    style={{ marginBottom: '0.5rem' }}
                                 />
+                                <button
+                                    type="button"
+                                    className="btn-edit"
+                                    style={{ marginBottom: '1rem' }}
+                                    onClick={() => { setR2PickerTarget('new'); setR2PickerOpen(true); }}
+                                >
+                                    🖼️ Wybierz z R2
+                                </button>
 
                                 <div className="quiz-grid">
                                     <input placeholder="Odp A" value={newQuiz.ans_a} onChange={e => setNewQuiz({...newQuiz, ans_a: e.target.value})} />
@@ -650,7 +985,11 @@ const AdminPanel = ({ onLogout, user }) => {
                                 <table className="admin-table">
                                     <thead><tr><th>Kat.</th><th>Pytanie</th><th>Popr.</th><th>Akcje</th></tr></thead>
                                     <tbody>
-                                    {questions.filter(q => (quizFilter === 'ALL' || q.category === quizFilter) && q.question.toLowerCase().includes(searchTerm.toLowerCase())).map(q => (
+                                    {loadingQuestions ? (
+                                        <tr><td colSpan="4" className="loading-row"><Skeleton width="40%" height={14} style={{ margin: '0 auto' }} /></td></tr>
+                                    ) : questions.length === 0 ? (
+                                        <tr><td colSpan="4" className="empty-state">Brak pytań.</td></tr>
+                                    ) : questions.map(q => (
                                         <tr key={q.id}>
                                             {editingQuestion?.id === q.id ? (
                                                 <td colSpan="4">
@@ -672,6 +1011,14 @@ const AdminPanel = ({ onLogout, user }) => {
                                                                 value={editingQuestion.image_url || ''}
                                                                 onChange={e => setEditingQuestion({...editingQuestion, image_url: e.target.value})}
                                                             />
+                                                            <button
+                                                                type="button"
+                                                                className="btn-edit"
+                                                                style={{ marginTop: '6px' }}
+                                                                onClick={() => { setR2PickerTarget('edit'); setR2PickerOpen(true); }}
+                                                            >
+                                                                🖼️ Wybierz z R2
+                                                            </button>
                                                         </div>
 
                                                         <div className="quiz-grid">
@@ -733,7 +1080,7 @@ const AdminPanel = ({ onLogout, user }) => {
                                                     <td>
                                                         <button className="btn-edit" onClick={() => setEditingQuestion({...q})}>Edytuj</button>
                                                         <button className="btn-save" disabled={!selectedQuizId} onClick={() => handleAddQuestionToQuiz(q.id)}>➕</button>
-                                                        <button className="btn-delete" onClick={async () => {if(confirm("Usuń?")){await apiFetch(`/api/admin/quiz?id=${q.id}`,{method:'DELETE'});fetchQuestions();}}}>Usuń</button>
+                                                        <button className="btn-delete" onClick={() => handleDeleteQuestion(q.id)}>Usuń</button>
                                                     </td>
                                                 </>
                                             )}
@@ -742,6 +1089,7 @@ const AdminPanel = ({ onLogout, user }) => {
                                     </tbody>
                                 </table>
                             </div>
+                        {renderPagination(questionsPagination, (p) => { setQuestionsPage(p); fetchQuestions(p); })}
 
                         </section>
                     </div>
@@ -751,16 +1099,50 @@ const AdminPanel = ({ onLogout, user }) => {
                     <section className="admin-form-section">
                         <div className="section-header-flex">
                             <h3>📊 Wyniki Egzaminów</h3>
-                            <input className="search-input" placeholder="Szukaj ucznia/testu..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                <input className="search-input" placeholder="Szukaj ucznia/testu..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                                <select className="search-input" value={resultFilterStatus} onChange={e => setResultFilterStatus(e.target.value)}>
+                                    <option value="ALL">Wszystkie statusy</option>
+                                    <option value="completed">Zakończone</option>
+                                    <option value="reset_requested">Prośby o reset</option>
+                                </select>
+                                <select className="search-input" value={resultFilterQuiz} onChange={e => setResultFilterQuiz(e.target.value)}>
+                                    <option value="ALL">Wszystkie testy</option>
+                                    {quizzes.map(qz => (
+                                        <option key={qz.id} value={qz.id}>{qz.title}</option>
+                                    ))}
+                                </select>
+                                <select className="search-input" value={resultFilterCategory} onChange={e => setResultFilterCategory(e.target.value)}>
+                                    <option value="ALL">Wszystkie kursy/kategorie</option>
+                                    {resultCategories.map(cat => (
+                                        <option key={cat} value={cat}>{cat}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                         <div className="admin-table-container">
                             <table className="admin-table">
-                                <thead><tr><th>Uczeń</th><th>Test</th><th>Punkty</th><th>%</th><th>Data</th><th>Akcje</th></tr></thead>
+                                <thead>
+                                <tr>
+                                    <th className="sortable" onClick={() => handleResultSort('student')}>Uczeń {resultSort.field === 'student' ? (resultSort.dir === 'asc' ? '▲' : '▼') : ''}</th>
+                                    <th className="sortable" onClick={() => handleResultSort('quiz')}>Test {resultSort.field === 'quiz' ? (resultSort.dir === 'asc' ? '▲' : '▼') : ''}</th>
+                                    <th className="sortable" onClick={() => handleResultSort('category')}>Kategoria {resultSort.field === 'category' ? (resultSort.dir === 'asc' ? '▲' : '▼') : ''}</th>
+                                    <th className="sortable" onClick={() => handleResultSort('score')}>Punkty {resultSort.field === 'score' ? (resultSort.dir === 'asc' ? '▲' : '▼') : ''}</th>
+                                    <th className="sortable" onClick={() => handleResultSort('percent')}>% {resultSort.field === 'percent' ? (resultSort.dir === 'asc' ? '▲' : '▼') : ''}</th>
+                                    <th className="sortable" onClick={() => handleResultSort('date')}>Data {resultSort.field === 'date' ? (resultSort.dir === 'asc' ? '▲' : '▼') : ''}</th>
+                                    <th>Akcje</th>
+                                </tr>
+                                </thead>
                                 <tbody>
-                                {allResults.filter(r => `${r.first_name} ${r.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) || r.quiz_title.toLowerCase().includes(searchTerm.toLowerCase())).map(r => (
+                                {loadingResults ? (
+                                    <tr><td colSpan="7" className="loading-row"><Skeleton width="40%" height={14} style={{ margin: '0 auto' }} /></td></tr>
+                                ) : allResults.length === 0 ? (
+                                    <tr><td colSpan="7" className="empty-state">Brak wyników.</td></tr>
+                                ) : allResults.map(r => (
                                     <tr key={r.id} className={r.status === 'reset_requested' ? 'row-highlight-warning' : ''}>
                                         <td><strong>{r.first_name} {r.last_name}</strong></td>
                                         <td>{r.quiz_title}</td>
+                                        <td><span className="tag">{r.quiz_category || '—'}</span></td>
                                         <td>{r.score} / {r.total_questions}</td>
                                         <td>{r.percent}%</td>
                                         <td>{new Date(r.completed_at).toLocaleDateString()}</td>
@@ -781,6 +1163,7 @@ const AdminPanel = ({ onLogout, user }) => {
                                 </tbody>
                             </table>
                         </div>
+                        {renderPagination(resultsPagination, (p) => { setResultsPage(p); fetchAllResults(p); })}
 
                     </section>
                 )}
@@ -846,20 +1229,19 @@ const AdminPanel = ({ onLogout, user }) => {
                             </form>
                         </section>
 
-                        {/* LISTA MATERIAŁÓW */}
+                        {/* LISTA MATERIAŁÓW — tabela z paginacją */}
                         <section className="admin-form-section">
                             <div className="section-header-flex">
                                 <h3>Lista opublikowanych materiałów</h3>
-                                <select
-                                    className="search-input"
-                                    value={materialFilter}
-                                    onChange={e => setMaterialFilter(e.target.value)}
-                                >
-                                    <option value="ALL">Wszystkie kursy</option>
-                                    {courses.map(c => (
-                                        <option key={c.id} value={c.id}>{c.name}</option>
-                                    ))}
-                                </select>
+                                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                    <input className="search-input" placeholder="Szukaj po tytule..." value={materialSearch} onChange={e => setMaterialSearch(e.target.value)} />
+                                    <select className="search-input" value={materialCourseFilter} onChange={e => setMaterialCourseFilter(e.target.value)}>
+                                        <option value="ALL">Wszystkie kursy</option>
+                                        {courses.map(c => (
+                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
 
                             <div className="admin-table-container">
@@ -873,21 +1255,26 @@ const AdminPanel = ({ onLogout, user }) => {
                                     </tr>
                                     </thead>
                                     <tbody>
-                                    {allMaterials
-                                        .filter(m => materialFilter === 'ALL' || m.course_id === parseInt(materialFilter))
-                                        .map(m => (
+                                    {loadingMaterials ? (
+                                        <tr><td colSpan="4" className="loading-row"><Skeleton width="40%" height={14} style={{ margin: '0 auto' }} /></td></tr>
+                                    ) : allMaterials.length === 0 ? (
+                                        <tr><td colSpan="4" className="empty-state">Brak materiałów.</td></tr>
+                                    ) : (
+                                        allMaterials.map(m => (
                                             <tr key={m.id}>
-                                                <td><span className="tag tag-active">{m.course_name}</span></td>
+                                                <td><span className="tag tag-active">{m.course_name || 'Bez kursu'}</span></td>
                                                 <td>{m.title}</td>
                                                 <td>{m.content_type === 'link' ? '🔗 Link' : '📄 HTML'}</td>
                                                 <td>
                                                     <button className="btn-delete" onClick={() => handleDeleteMaterial(m.id)}>Usuń</button>
                                                 </td>
                                             </tr>
-                                        ))}
+                                        ))
+                                    )}
                                     </tbody>
                                 </table>
                             </div>
+                            {renderPagination(materialsPagination, (p) => { setMaterialsPage(p); fetchAllMaterials(p); })}
                         </section>
                     </div>
                 )}
@@ -921,6 +1308,23 @@ const AdminPanel = ({ onLogout, user }) => {
                         </div>
                     </div>
                 )}
+            <ConfirmModal
+                open={!!confirmState}
+                title={confirmState?.title}
+                message={confirmState?.message}
+                confirmLabel={confirmState?.confirmLabel}
+                onConfirm={() => {
+                    const fn = confirmState?.onConfirm;
+                    closeConfirm();
+                    if (fn) fn();
+                }}
+                onCancel={closeConfirm}
+            />
+            <R2ImagePicker
+                open={r2PickerOpen}
+                onClose={() => setR2PickerOpen(false)}
+                onSelect={handleR2Select}
+            />
             </main>
         </div>
     );

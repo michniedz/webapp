@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api';
-
+import ConfirmModal from '../components/ConfirmModal';
+import Skeleton from '../components/Skeleton';
+import { toast } from '../lib/toast';
 const StudentQuiz = ({ user, quizId, onBack }) => {
     const [allQuizzes, setAllQuizzes] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(null);
@@ -13,6 +15,7 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
     const [loading, setLoading] = useState(false);
     const [timeLeft, setTimeLeft] = useState(3600);
     const [serverResult, setServerResult] = useState(null);
+    const [confirmOpen, setConfirmOpen] = useState(false);
 
     // --- FUNKCJE POMOCNICZE (MUSZĄ BYĆ NA GÓRZE) ---
 
@@ -34,7 +37,7 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
 
     const handleStartTest = async (quiz) => {
         if (quiz.is_active === 0) {
-            alert("Ten egzamin jest jeszcze zablokowany!");
+            toast("Ten egzamin jest jeszcze zablokowany!", "warning");
             return;
         }
         setLoading(true);
@@ -44,7 +47,7 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
             if (data.success) {
                 setQuizData(data.data);
                 setActiveQuiz(quiz);
-                setTimeLeft(3600);
+                setTimeLeft(data.remaining_seconds ?? (quiz.time_limit_minutes ?? 60) * 60);
                 setAnswers({});
                 setCurrentStep(0);
                 setIsFinished(false);
@@ -55,7 +58,8 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
         setLoading(false);
     };
 
-    const finishAndSave = async () => {
+    // Rzeczywiste wysłanie odpowiedzi na serwer (bez potwierdzenia)
+    const submitQuiz = async () => {
         try {
             const res = await apiFetch('/api/quiz/submit', {
                 method: 'POST',
@@ -72,14 +76,19 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
                 setIsFinished(true);
                 fetchData();
             } else {
-                alert(data.error || "Błąd zapisu.");
+                toast(data.error || "Błąd zapisu.", "error");
             }
-        } catch (err) { alert("Błąd zapisu."); }
+        } catch (err) { toast("Błąd zapisu.", "error"); }
+    };
+
+    // Kliknięcie "Zakończ egzamin" — najpierw pytamy o potwierdzenie
+    const finishAndSave = () => {
+        setConfirmOpen(true);
     };
 
     const handlePreview = async (quiz) => {
         if (quiz.is_active === 0) {
-            alert("Podgląd tego testu został zablokowany przez nauczyciela.");
+            toast("Podgląd tego testu został zablokowany przez nauczyciela.", "warning");
             return;
         }
         setLoading(true);
@@ -101,7 +110,7 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
             body: JSON.stringify({ quiz_id: quizId })
         });
         if ((await res.json()).success) {
-            alert("Prośba o ponowne rozwiązanie została wysłana do administratora.");
+            toast("Prośba o ponowne rozwiązanie została wysłana do administratora.", "success");
             await fetchData();
         }
     };
@@ -123,10 +132,22 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
 
     useEffect(() => {
         if (!activeQuiz || isFinished) return;
-        if (timeLeft <= 0) { finishAndSave(); return; }
+        if (timeLeft <= 0) { submitQuiz(); return; }
         const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
         return () => clearInterval(timer);
     }, [activeQuiz, isFinished, timeLeft]);
+
+    // Wykrywanie przełączenia na inną kartę/okno (anty-ściąganie)
+    useEffect(() => {
+        if (!activeQuiz || isFinished) return;
+        const handler = () => {
+            if (document.hidden) {
+                toast("Wykryto przełączenie na inną kartę lub okno. Pozostań w teście.", "warning");
+            }
+        };
+        document.addEventListener('visibilitychange', handler);
+        return () => document.removeEventListener('visibilitychange', handler);
+    }, [activeQuiz, isFinished]);
 
 
     // Nowa funkcja pomocnicza do automatycznego startu
@@ -153,7 +174,7 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
                 if (data.success) {
                     setQuizData(data.data);
                     setActiveQuiz({ id: id, title: quizInfo ? quizInfo.title : "Egzamin" });
-                    setTimeLeft(3600);
+                    setTimeLeft(data.remaining_seconds ?? (quizInfo?.time_limit_minutes ?? 60) * 60);
                     setAnswers({});
                     setCurrentStep(0);
                     setIsFinished(false);
@@ -167,7 +188,16 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
 
     // --- RENDERING (LOGIKA WYBORU EKRANU) ---
 
-    if (loading) return <div className="loader">Ładowanie danych egzaminu...</div>;
+    if (loading) {
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '2rem' }}>
+                <Skeleton width={280} height={22} />
+                <Skeleton width="92%" height={14} />
+                <Skeleton width="75%" height={14} />
+                <Skeleton width={130} height={42} style={{ marginTop: '1rem' }} />
+            </div>
+        );
+    }
 
     if (!selectedCategory && !activeQuiz) {
         return (
@@ -265,9 +295,13 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
                     <h2 style={{fontSize: '3rem'}}>{displayResult.percent}%</h2>
                     <p>Wynik: {displayResult.score} / {displayResult.total}</p>
                     <button className="login-submit-btn" onClick={() => {
-                        setActiveQuiz(null);
-                        setIsFinished(false);
-                        setAnswers({});
+                        if (quizId) {
+                            onBack(); // otwarto z kursu → wróć do kursu
+                        } else {
+                            setActiveQuiz(null);
+                            setIsFinished(false);
+                            setAnswers({});
+                        }
                     }}>Zamknij podgląd</button>
                 </div>
 
@@ -338,10 +372,29 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
     // --- EKRAN AKTYWNEGO PYTANIA ---
     const q = quizData[currentStep];
     return (
-        <section className="quiz-active">
+        <section
+            className="quiz-active"
+            onContextMenu={(e) => e.preventDefault()}
+            onCopy={(e) => e.preventDefault()}
+        >
             <div className="quiz-header">
                 <div><span className="tag-pending">{activeQuiz?.title}</span><span> Pytanie {currentStep + 1} / {quizData.length}</span></div>
                 <div className={`timer-badge ${timeLeft < 300 ? 'urgent' : ''}`}>⏱️ {formatTime(timeLeft)}</div>
+            </div>
+            <div className="quiz-question-nav">
+                {quizData.map((question, idx) => {
+                    const answered = answers[question.id] !== undefined && answers[question.id] !== '';
+                    return (
+                        <button
+                            key={question.id}
+                            className={`quiz-nav-dot ${answered ? 'answered' : ''} ${idx === currentStep ? 'current' : ''}`}
+                            onClick={() => setCurrentStep(idx)}
+                            title={`Pytanie ${idx + 1}${answered ? ' (odpowiedziano)' : ' (brak odpowiedzi)'}`}
+                        >
+                            {idx + 1}
+                        </button>
+                    );
+                })}
             </div>
             <div className="question-box">
                 <h4 className="quiz-question-text">{q?.question}</h4>
@@ -384,6 +437,17 @@ const StudentQuiz = ({ user, quizId, onBack }) => {
                     <button onClick={() => setCurrentStep(currentStep + 1)}>Następne</button>
                 )}
             </div>
+
+            <ConfirmModal
+                open={confirmOpen}
+                title="Zakończyć egzamin?"
+                message={`Odpowiedziałeś na ${Object.values(answers).filter(a => a).length} z ${quizData.length} pytań. Pytania bez odpowiedzi będą zaliczone jako błędne.`}
+                confirmLabel="Zakończ i zapisz"
+                cancelLabel="Wróć do testu"
+                danger={false}
+                onConfirm={submitQuiz}
+                onCancel={() => setConfirmOpen(false)}
+            />
         </section>
     );
 };
